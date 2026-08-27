@@ -1,0 +1,41 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isAdmin() {
+      return isAuthenticated() && 
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    match /users/{userId} {
+      // Users can read their own profile. Admins can read all users.
+      allow read: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
+      
+      // Users can create their own profile during registration with role 'user'.
+      allow create: if isAuthenticated() && 
+                    request.auth.uid == userId && 
+                    request.resource.data.role == 'user';
+                    
+      // Users can update their own profile, but cannot escalate their role.
+      // Admins can fully update.
+      allow update: if isAuthenticated() && (
+                      (request.auth.uid == userId && request.resource.data.role == resource.data.role) || 
+                      isAdmin()
+                    );
+                    
+      allow delete: if isAdmin();
+    }
+
+    match /products/{productId} {
+      // Authenticated users can read products.
+      allow read: if isAuthenticated();
+      
+      // Only admins can modify products.
+      allow write: if isAdmin();
+    }
+  }
+}
