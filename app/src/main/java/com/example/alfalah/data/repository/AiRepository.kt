@@ -67,7 +67,7 @@ class AiRepository {
                 429 -> {
                     try {
                         val errorBody = e.response()?.errorBody()?.string()
-                        val json = JSONObject(errorBody)
+                        val json = JSONObject(errorBody ?: "")
                         json.optString("error", "تجاوزت حد الاستخدام أو يوجد ضغط كبير. يرجى المحاولة بعد قليل.")
                     } catch (ex: Exception) {
                         "تجاوزت حد الاستخدام أو يوجد ضغط كبير. يرجى المحاولة بعد قليل."
@@ -76,7 +76,7 @@ class AiRepository {
                 503 -> {
                     try {
                         val errorBody = e.response()?.errorBody()?.string()
-                        val json = JSONObject(errorBody)
+                        val json = JSONObject(errorBody ?: "")
                         json.optString("error", "خوادم الذكاء الاصطناعي غير متاحة مؤقتاً. يرجى المحاولة لاحقاً.")
                     } catch (ex: Exception) {
                         "خوادم الذكاء الاصطناعي غير متاحة مؤقتاً. يرجى المحاولة لاحقاً."

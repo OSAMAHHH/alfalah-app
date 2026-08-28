@@ -338,7 +338,7 @@ fun ProblemDialog(
                         onValueChange = {},
                         readOnly = true,
                         label = { Text("المحصول") },
-                        modifier = Modifier.menuAnchor()
+                        modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable)
                     )
                     ExposedDropdownMenu(expanded = expandedCrop, onDismissRequest = { expandedCrop = false }) {
                         crops.forEach { c ->
@@ -362,7 +362,7 @@ fun ProblemDialog(
                         onValueChange = {},
                         readOnly = true,
                         label = { Text("النوع") },
-                        modifier = Modifier.menuAnchor()
+                        modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable)
                     )
                     ExposedDropdownMenu(expanded = expandedType, onDismissRequest = { expandedType = false }) {
                         types.forEach { t ->
