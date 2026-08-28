@@ -18,3 +18,4 @@ local.properties
 debug.keystore
 backend/.env
 backend/serviceAccountKey.json
+*.jks

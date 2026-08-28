@@ -31,7 +31,7 @@ export const processChat = async (request: AiChatRequest): Promise<AiChatRespons
     `;
 
     const extractionResponse = await ai.models.generateContent({
-      model: 'gemini-3.7-flash',
+      model: 'gemini-3.6-flash',
       contents: extractionPrompt,
     });
     
@@ -114,7 +114,7 @@ export const processChat = async (request: AiChatRequest): Promise<AiChatRespons
     `;
 
     const finalResponse = await ai.models.generateContent({
-      model: 'gemini-3.7-flash',
+      model: 'gemini-3.6-flash',
       contents: finalPrompt,
     });
 
