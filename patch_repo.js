@@ -1,4 +1,7 @@
-package com.example.alfalah.data.repository
+const fs = require('fs');
+const path = './app/src/main/java/com/example/alfalah/data/repository/AiRepository.kt';
+
+const newCode = `package com.example.alfalah.data.repository
 
 import com.example.alfalah.BuildConfig
 import com.example.alfalah.data.model.AiChatRequest
@@ -54,7 +57,7 @@ class AiRepository {
             
             // Get Firebase ID token
             val tokenResult = user.getIdToken(false).await()
-            val token = "Bearer ${tokenResult.token}"
+            val token = "Bearer \${tokenResult.token}"
 
             val request = AiChatRequest(message = message, conversationId = conversationId)
             val response = apiService.sendMessage(token, request)
@@ -83,7 +86,7 @@ class AiRepository {
                     }
                 }
                 500 -> "حدث خطأ داخلي في الخادم."
-                else -> "حدث خطأ غير متوقع (${e.code()}). يرجى المحاولة لاحقاً."
+                else -> "حدث خطأ غير متوقع (\${e.code()}). يرجى المحاولة لاحقاً."
             }
             Pair(errorMessage, emptyList())
         } catch (e: SocketTimeoutException) {
@@ -91,7 +94,10 @@ class AiRepository {
         } catch (e: IOException) {
             Pair("عذراً، لا يمكنني الاتصال بالخادم حالياً. يرجى التأكد من اتصالك بالإنترنت.", emptyList())
         } catch (e: Exception) {
-            Pair("عذراً، حدث خطأ غير متوقع: ${e.message}", emptyList())
+            Pair("عذراً، حدث خطأ غير متوقع: \${e.message}", emptyList())
         }
     }
 }
+`;
+
+fs.writeFileSync(path, newCode);

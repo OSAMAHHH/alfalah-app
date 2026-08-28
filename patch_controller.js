@@ -1,4 +1,7 @@
-import { Response } from 'express';
+const fs = require('fs');
+const path = './backend/src/controllers/aiController.ts';
+
+const newCode = `import { Response } from 'express';
 import { AuthenticatedRequest } from '../middleware/authMiddleware';
 import * as aiService from '../services/aiService';
 
@@ -32,3 +35,6 @@ export const handleChat = async (req: AuthenticatedRequest, res: Response) => {
     return res.status(500).json({ error: 'حدث خطأ داخلي في الخادم.' });
   }
 };
+`;
+
+fs.writeFileSync(path, newCode);

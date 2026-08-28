@@ -1,4 +1,7 @@
-import { AiChatRequest, AiChatResponse } from '../types';
+const fs = require('fs');
+const path = './backend/src/services/aiService.ts';
+
+const newCode = `import { AiChatRequest, AiChatResponse } from '../types';
 import { GoogleGenAI } from '@google/genai';
 import { matchProblem, getActiveProductsByIds } from './knowledgeBaseService';
 
@@ -20,7 +23,7 @@ const generateWithRetry = async (ai: GoogleGenAI, model: string, contents: strin
     try {
       return await ai.models.generateContent({ model, contents });
     } catch (error: any) {
-      console.error(`Gemini API Error (Attempt ${attempt + 1}):`, error?.message || error);
+      console.error(\`Gemini API Error (Attempt \${attempt + 1}):\`, error?.message || error);
       
       const status = error?.status || (error?.message?.includes('429') ? 429 : 
                                       (error?.message?.includes('503') || error?.message?.includes('high demand') || error?.message?.includes('UNAVAILABLE') ? 503 : 500));
@@ -29,7 +32,7 @@ const generateWithRetry = async (ai: GoogleGenAI, model: string, contents: strin
       if ((status === 429 || status === 503) && attempt < maxRetries) {
         attempt++;
         const backoffTime = Math.pow(2, attempt) * 1000 + Math.random() * 1000; // Exponential backoff with jitter
-        console.log(`Retrying in ${Math.round(backoffTime)}ms...`);
+        console.log(\`Retrying in \${Math.round(backoffTime)}ms...\`);
         await delay(backoffTime);
         continue;
       }
@@ -59,7 +62,7 @@ export const processChat = async (request: AiChatRequest): Promise<AiChatRespons
   const ai = new GoogleGenAI({ apiKey });
   
   // Step 1: Entity Extraction
-  const extractionPrompt = `
+  const extractionPrompt = \`
     قم بتحليل استفسار المستخدم الزراعي التالي بدقة.
     استخرج المعلومات التالية وأعدها بصيغة JSON فقط بدون أي نصوص إضافية أو Markdown:
     {
@@ -67,14 +70,14 @@ export const processChat = async (request: AiChatRequest): Promise<AiChatRespons
       "symptoms": ["العرض الأول", "العرض الثاني"],
       "problemType": "نوع المشكلة مثل حشرة، مرض، نقص عناصر، أو null إذا لم يذكر"
     }
-    استفسار المستخدم: "${request.message}"
-  `;
+    استفسار المستخدم: "\${request.message}"
+  \`;
 
   const extractionResponse = await generateWithRetry(ai, 'gemini-3.6-flash', extractionPrompt);
   
   let extractedData = { cropName: null, symptoms: [], problemType: null };
   try {
-    const rawText = extractionResponse.text?.replace(/\x60\x60\x60json/g, '').replace(/\x60\x60\x60/g, '').trim() || '{}';
+    const rawText = extractionResponse.text?.replace(/\\x60\\x60\\x60json/g, '').replace(/\\x60\\x60\\x60/g, '').trim() || '{}';
     extractedData = JSON.parse(rawText);
   } catch (e) {
     console.warn("Failed to parse Gemini extraction JSON", e);
@@ -92,8 +95,8 @@ export const processChat = async (request: AiChatRequest): Promise<AiChatRespons
 
   // Step 3: Context Assembly based on Matching Scores
   if (!matchedCrop) {
-    systemContext = `المستخدم يسأل سؤالاً زراعياً ولكن لم نتمكن من تحديد المحصول في قاعدة بياناتنا. 
-    اعتذر بلطف، واطلب منه توضيح اسم المحصول أو التأكد من إضافته، وتوضيح الأعراض. لا تقترح حلولاً من خارج النظام.`;
+    systemContext = \`المستخدم يسأل سؤالاً زراعياً ولكن لم نتمكن من تحديد المحصول في قاعدة بياناتنا. 
+    اعتذر بلطف، واطلب منه توضيح اسم المحصول أو التأكد من إضافته، وتوضيح الأعراض. لا تقترح حلولاً من خارج النظام.\`;
   } else if (matches.length > 0) {
     const topMatch = matches[0];
     
@@ -102,53 +105,53 @@ export const processChat = async (request: AiChatRequest): Promise<AiChatRespons
       const products = await getActiveProductsByIds(topMatch.problem.recommendedProductIds || []);
       finalRecommendedProductIds = products.map(p => p.id);
       
-      systemContext = `
+      systemContext = \`
         أنت مساعد زراعي خبير وموثوق في تطبيق 'الفلاح'.
         تحدث بثقة وود.
-        بناءً على قاعدة المعرفة الخاصة بنا، المشكلة الأقرب بنسبة مطابقة عالية لمحصول (${matchedCrop.name}) هي: (${topMatch.problem.name}).
-        الأسباب: ${topMatch.problem.causes}
-        طرق العلاج: ${topMatch.problem.treatment}
-        المنتجات المتوفرة للعلاج في نظامنا: ${products.map(p => p.name + ' - ' + p.usage).join(', ')}
+        بناءً على قاعدة المعرفة الخاصة بنا، المشكلة الأقرب بنسبة مطابقة عالية لمحصول (\${matchedCrop.name}) هي: (\${topMatch.problem.name}).
+        الأسباب: \${topMatch.problem.causes}
+        طرق العلاج: \${topMatch.problem.treatment}
+        المنتجات المتوفرة للعلاج في نظامنا: \${products.map(p => p.name + ' - ' + p.usage).join(', ')}
         
         التعليمات لك:
         - صغ إجابة تفصيلية ومطمئنة للمستخدم توضح المشكلة والحلول.
         - اذكر المنتجات المرفقة فقط كحل مقترح (إذا توفرت). لا تخترع أو تقترح منتجات من خارج النظام أبداً.
         - لا تذكر النقاط (Scores) للمستخدم.
-      `;
+      \`;
     } else if (topMatch.score >= 40) {
       // Low confidence
-      systemContext = `
+      systemContext = \`
         أنت مساعد زراعي في تطبيق 'الفلاح'.
-        المستخدم يواجه مشكلة في محصول (${matchedCrop.name}). 
-        الأعراض المذكورة تتشابه جزئياً مع المشكلة: (${topMatch.problem.name}).
+        المستخدم يواجه مشكلة في محصول (\${matchedCrop.name}). 
+        الأعراض المذكورة تتشابه جزئياً مع المشكلة: (\${topMatch.problem.name}).
         
         التعليمات لك:
         - لا تقم بتشخيص قاطع. استخدم عبارات مثل "قد تتوافق الأعراض مع..." أو "يُحتمل أن تكون...".
         - اذكر أن المعلومات غير كافية لتشخيص دقيق واطلب منه توضيح أعراض إضافية.
         - لا تقترح منتجات في هذه المرحلة.
-      `;
+      \`;
     } else {
       // Unsure
-      systemContext = `
+      systemContext = \`
         أنت مساعد زراعي في تطبيق 'الفلاح'.
-        المحصول المذكور هو (${matchedCrop.name}) ولكن الأعراض لا تتطابق مع أي مشكلة معروفة في قاعدة بياناتنا.
+        المحصول المذكور هو (\${matchedCrop.name}) ولكن الأعراض لا تتطابق مع أي مشكلة معروفة في قاعدة بياناتنا.
         التعليمات لك:
         - اعتذر بلطف.
         - اطلب من المستخدم وصف المشكلة بشكل أدق وأكثر تفصيلاً لنتمكن من مساعدته.
         - لا تقترح حلولاً من خارج النظام.
-      `;
+      \`;
     }
   } else {
-    systemContext = `المحصول (${matchedCrop.name}) موجود لدينا ولكن لا توجد مشاكل زراعية مسجلة له حالياً. اطلب منه مراجعة المهندس الزراعي المختص أو انتظار تحديثات الإدارة.`;
+    systemContext = \`المحصول (\${matchedCrop.name}) موجود لدينا ولكن لا توجد مشاكل زراعية مسجلة له حالياً. اطلب منه مراجعة المهندس الزراعي المختص أو انتظار تحديثات الإدارة.\`;
   }
 
   // Step 4: Final Generation (RAG)
-  const finalPrompt = `
+  const finalPrompt = \`
     السياق والمعلومات الموثوقة (لا تتجاوزها):
-    ${systemContext}
+    \${systemContext}
     
-    سؤال المستخدم: "${request.message}"
-  `;
+    سؤال المستخدم: "\${request.message}"
+  \`;
 
   const finalResponse = await generateWithRetry(ai, 'gemini-3.6-flash', finalPrompt);
 
@@ -157,3 +160,6 @@ export const processChat = async (request: AiChatRequest): Promise<AiChatRespons
     recommendedProducts: finalRecommendedProductIds
   };
 };
+`;
+
+fs.writeFileSync(path, newCode);
