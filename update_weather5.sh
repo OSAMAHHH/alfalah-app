@@ -1,0 +1,1 @@
+sed -i 's/Text("طقس مشمس ومناسب للري", style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onSurface)/Text(weather?.description ?: "جاري جلب الطقس...", style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onSurface)/g' app/src/main/java/com/example/alfalah/ui/screens/home/HomeScreen.kt

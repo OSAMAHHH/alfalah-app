@@ -1,0 +1,1 @@
+sed -i '/val scope = rememberCoroutineScope()/a \    var weather by remember { mutableStateOf<WeatherInfo?>(null) }\n    LaunchedEffect(Unit) { weather = weatherRepository.getCurrentWeather().getOrNull() }' app/src/main/java/com/example/alfalah/ui/screens/home/HomeScreen.kt

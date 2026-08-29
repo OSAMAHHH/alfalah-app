@@ -1,0 +1,1 @@
+sed -i 's/authRepository: AuthRepository = AuthRepository(),/authRepository: AuthRepository = AuthRepository(),\n    weatherRepository: WeatherRepository = remember { WeatherRepository() },/g' app/src/main/java/com/example/alfalah/ui/screens/home/HomeScreen.kt

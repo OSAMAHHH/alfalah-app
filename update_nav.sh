@@ -1,0 +1,1 @@
+sed -i 's/onNavigateToAdmin = { navController.navigate(Routes.ADMIN_DASHBOARD) },/onNavigateToAdmin = { navController.navigate(Routes.ADMIN_DASHBOARD) },\n                    onNavigateToGuide = { category -> navController.navigate(Routes.guide(category)) },/g' app/src/main/java/com/example/alfalah/ui/navigation/AppNavigation.kt

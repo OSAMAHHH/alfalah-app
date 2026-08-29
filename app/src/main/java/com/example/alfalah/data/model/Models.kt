@@ -16,6 +16,7 @@ data class Product(
     val imageUrl: String = "",
     val description: String = "",
     val price: Double = 0.0,
+    val currency: String = "SAR",
     val category: String = "",
     val nutrients: List<String> = emptyList(),
     val suitableCrops: List<String> = emptyList(),

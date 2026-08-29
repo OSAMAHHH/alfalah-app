@@ -1,27 +1,26 @@
 package com.example.alfalah.ui.screens.chat
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.animateContentSize
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.core.*
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.automirrored.outlined.Send
-import androidx.compose.material.icons.outlined.CameraAlt
+import androidx.compose.material.icons.outlined.SmartToy
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.alfalah.data.model.Product
+import com.example.alfalah.ui.components.EmptyState
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -34,124 +33,122 @@ fun ChatScreen(
     val messages by viewModel.messages.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
     var inputText by remember { mutableStateOf("") }
-    
     val listState = rememberLazyListState()
 
-    LaunchedEffect(messages.size) {
-        if (messages.isNotEmpty()) {
-            listState.animateScrollToItem(messages.size - 1)
-        }
+    LaunchedEffect(messages.size, isLoading) {
+        if (messages.isNotEmpty()) listState.animateScrollToItem(messages.size)
     }
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { 
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text("المساعد الزراعي الذكي", fontWeight = FontWeight.Bold)
-                    }
-                },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = "رجوع")
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.background
-                )
-            )
-        },
-        bottomBar = {
-            Surface(
-                color = MaterialTheme.colorScheme.surface,
-                tonalElevation = 2.dp,
-                shadowElevation = 8.dp
-            ) {
-                ChatInputBar(
-                    inputText = inputText,
-                    onInputChanged = { inputText = it },
-                    onSend = { 
-                        viewModel.sendMessage(inputText)
-                        inputText = ""
+            Surface(shadowElevation = 4.dp, color = MaterialTheme.colorScheme.surface) {
+                TopAppBar(
+                    title = { 
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Box(modifier = Modifier.size(40.dp).background(MaterialTheme.colorScheme.primaryContainer, CircleShape), contentAlignment = Alignment.Center) {
+                                Icon(Icons.Outlined.SmartToy, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                            }
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Column {
+                                Text("المساعد الزراعي", style = MaterialTheme.typography.titleMedium)
+                                Text("متصل دائماً للإجابة على استفساراتك", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
+                            }
+                        }
                     },
-                    isLoading = isLoading
+                    navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = "رجوع") } },
+                    colors = TopAppBarDefaults.topAppBarColors(containerColor = androidx.compose.ui.graphics.Color.Transparent)
                 )
             }
         },
         containerColor = MaterialTheme.colorScheme.background
     ) { padding ->
-        if (messages.isEmpty()) {
-            Box(
-                modifier = modifier
-                    .fillMaxSize()
-                    .padding(padding),
-                contentAlignment = Alignment.Center
-            ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(
-                        "🌱",
-                        style = MaterialTheme.typography.displayLarge
-                    )
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Text(
-                        "مرحباً بك!",
-                        style = MaterialTheme.typography.titleLarge,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        "كيف يمكنني مساعدتك في مزرعتك اليوم؟",
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-        } else {
-            LazyColumn(
-                state = listState,
-                modifier = modifier
-                    .fillMaxSize()
-                    .padding(padding),
-                contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 24.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                items(messages) { message ->
-                    AnimatedVisibility(
-                        visible = true,
-                        enter = fadeIn() + slideInVertically(initialOffsetY = { it / 2 })
-                    ) {
-                        ChatBubble(
-                            isUser = message.isUser,
-                            text = message.text,
-                            products = message.recommendedProducts,
-                            onProductClick = onNavigateToProduct
+        Column(modifier = modifier.fillMaxSize().padding(padding)) {
+            if (messages.isEmpty()) {
+                Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        EmptyState(
+                            icon = Icons.Outlined.SmartToy,
+                            title = "كيف أساعدك اليوم؟",
+                            message = "أنا هنا لمساعدتك في تشخيص أمراض النباتات، اقتراح الأسمدة، والإجابة عن أي استفسار زراعي."
                         )
+                        Spacer(modifier = Modifier.height(16.dp))
+                        val suggestions = listOf("ما هو أفضل سماد للطماطم؟", "كيف أعالج اصفرار أوراق الليمون؟", "متى أزرع القمح؟")
+                        suggestions.forEach { text ->
+                            Surface(
+                                modifier = Modifier.padding(vertical = 4.dp).clickable { viewModel.sendMessage(text) },
+                                shape = RoundedCornerShape(16.dp),
+                                color = MaterialTheme.colorScheme.surfaceVariant,
+                                border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f))
+                            ) {
+                                Text(text, modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                        }
                     }
                 }
-                if (isLoading) {
-                    item {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 8.dp),
-                            contentAlignment = Alignment.CenterStart
+            } else {
+                LazyColumn(state = listState, modifier = Modifier.weight(1f), contentPadding = PaddingValues(24.dp), verticalArrangement = Arrangement.spacedBy(24.dp)) {
+                    items(messages) { message -> ChatMessageBubble(message = message, onNavigateToProduct = onNavigateToProduct) }
+                    if (isLoading) item { TypingIndicator() }
+                }
+            }
+
+            Surface(color = MaterialTheme.colorScheme.surface, shadowElevation = 16.dp) {
+                Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp).navigationBarsPadding(), verticalAlignment = Alignment.CenterVertically) {
+                    OutlinedTextField(
+                        value = inputText, onValueChange = { inputText = it },
+                        modifier = Modifier.weight(1f), placeholder = { Text("اكتب سؤالك الزراعي...") },
+                        shape = RoundedCornerShape(24.dp), maxLines = 4,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = MaterialTheme.colorScheme.primary, unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+                            focusedContainerColor = MaterialTheme.colorScheme.surface, unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha=0.3f)
+                        )
+                    )
+                    Spacer(modifier = Modifier.width(12.dp))
+                    IconButton(
+                        onClick = { if (inputText.isNotBlank() && !isLoading) { viewModel.sendMessage(inputText); inputText = "" } },
+                        enabled = inputText.isNotBlank() && !isLoading,
+                        modifier = Modifier.size(56.dp).background(if (inputText.isNotBlank() && !isLoading) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant, CircleShape)
+                    ) {
+                        Icon(Icons.AutoMirrored.Outlined.Send, contentDescription = "إرسال", tint = if (inputText.isNotBlank() && !isLoading) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun ChatMessageBubble(message: ChatMessageUi, onNavigateToProduct: (String) -> Unit) {
+    val isUser = message.isUser
+    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = if (isUser) Arrangement.End else Arrangement.Start, verticalAlignment = Alignment.Bottom) {
+        if (!isUser) {
+            Box(modifier = Modifier.size(36.dp).background(MaterialTheme.colorScheme.primaryContainer, CircleShape), contentAlignment = Alignment.Center) {
+                Icon(Icons.Outlined.SmartToy, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
+            }
+            Spacer(modifier = Modifier.width(12.dp))
+        }
+
+        Surface(
+            color = if (isUser) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
+            shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp, bottomStart = if (isUser) 24.dp else 4.dp, bottomEnd = if (isUser) 4.dp else 24.dp),
+            modifier = Modifier.widthIn(max = 280.dp)
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Text(message.text, style = MaterialTheme.typography.bodyLarge, color = if (isUser) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant, lineHeight = MaterialTheme.typography.bodyLarge.lineHeight * 1.5f)
+                if (message.recommendedProducts.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text("مقترحات لك:", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+                    Spacer(modifier = Modifier.height(12.dp))
+                    message.recommendedProducts.forEach { product ->
+                        Surface(
+                            onClick = { onNavigateToProduct(product.id) },
+                            color = MaterialTheme.colorScheme.surface, shape = RoundedCornerShape(12.dp), shadowElevation = 2.dp,
+                            modifier = Modifier.padding(bottom = 8.dp)
                         ) {
-                            Surface(
-                                shape = RoundedCornerShape(16.dp, 16.dp, 16.dp, 4.dp),
-                                color = MaterialTheme.colorScheme.surfaceVariant
-                            ) {
-                                Row(
-                                    modifier = Modifier.padding(16.dp),
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    CircularProgressIndicator(
-                                        modifier = Modifier.size(16.dp),
-                                        strokeWidth = 2.dp,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                    Text("جاري التفكير...", style = MaterialTheme.typography.bodyMedium)
+                            Row(modifier = Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                                Column {
+                                    Text(product.name, style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onSurface)
+                                    Text("${product.price} ر.س", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
                                 }
                             }
                         }
@@ -163,139 +160,23 @@ fun ChatScreen(
 }
 
 @Composable
-fun ChatBubble(
-    isUser: Boolean,
-    text: String,
-    products: List<Product>,
-    onProductClick: (String) -> Unit
-) {
-    val bubbleShape = if (isUser) {
-        RoundedCornerShape(20.dp, 20.dp, 4.dp, 20.dp)
-    } else {
-        RoundedCornerShape(20.dp, 20.dp, 20.dp, 4.dp)
-    }
-
-    val bubbleColor = if (isUser) {
-        MaterialTheme.colorScheme.primary
-    } else {
-        MaterialTheme.colorScheme.surfaceVariant
-    }
-
-    val textColor = if (isUser) {
-        MaterialTheme.colorScheme.onPrimary
-    } else {
-        MaterialTheme.colorScheme.onSurfaceVariant
-    }
-
-    Column(
-        modifier = Modifier.fillMaxWidth().animateContentSize(),
-        horizontalAlignment = if (isUser) Alignment.Start else Alignment.End
-    ) {
-        Surface(
-            shape = bubbleShape,
-            color = bubbleColor,
-            modifier = Modifier.widthIn(max = 300.dp)
-        ) {
-            Text(
-                text = text,
-                modifier = Modifier.padding(16.dp),
-                color = textColor,
-                style = MaterialTheme.typography.bodyLarge,
-                lineHeight = MaterialTheme.typography.bodyLarge.lineHeight * 1.3
-            )
+fun TypingIndicator() {
+    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Start, verticalAlignment = Alignment.Bottom) {
+        Box(modifier = Modifier.size(36.dp).background(MaterialTheme.colorScheme.primaryContainer, CircleShape), contentAlignment = Alignment.Center) {
+            Icon(Icons.Outlined.SmartToy, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
         }
-
-        if (products.isNotEmpty()) {
-            Spacer(modifier = Modifier.height(8.dp))
-            products.forEach { product ->
-                Surface(
-                    shape = RoundedCornerShape(12.dp),
-                    color = MaterialTheme.colorScheme.surface,
-                    border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-                    modifier = Modifier
-                        .widthIn(max = 280.dp)
-                        .padding(bottom = 8.dp)
-                        .clickable { onProductClick(product.id) }
-                ) {
-                    Row(
-                        modifier = Modifier.padding(12.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text("📦", style = MaterialTheme.typography.titleMedium)
-                        Spacer(modifier = Modifier.width(12.dp))
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                product.name, 
-                                style = MaterialTheme.typography.titleSmall, 
-                                fontWeight = FontWeight.Bold,
-                                maxLines = 1
-                            )
-                            if (product.recommended) {
-                                Text(
-                                    "⭐ موصى به", 
-                                    style = MaterialTheme.typography.bodySmall, 
-                                    color = MaterialTheme.colorScheme.primary
-                                )
-                            }
-                        }
-                        Text(
-                            "${product.price} ر.س", 
-                            style = MaterialTheme.typography.labelLarge, 
-                            color = MaterialTheme.colorScheme.primary, 
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-                }
+        Spacer(modifier = Modifier.width(12.dp))
+        Surface(color = MaterialTheme.colorScheme.surfaceVariant, shape = RoundedCornerShape(24.dp, 24.dp, 24.dp, 4.dp)) {
+            Row(modifier = Modifier.padding(horizontal = 20.dp, vertical = 20.dp), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+                Dot(delay = 0); Dot(delay = 150); Dot(delay = 300)
             }
         }
     }
 }
 
 @Composable
-fun ChatInputBar(
-    inputText: String,
-    onInputChanged: (String) -> Unit,
-    onSend: () -> Unit,
-    isLoading: Boolean
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        IconButton(
-            onClick = { /* TODO: Camera */ },
-            modifier = Modifier.size(48.dp)
-        ) {
-            Icon(
-                Icons.Outlined.CameraAlt, 
-                contentDescription = "إرفاق صورة",
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-
-        OutlinedTextField(
-            value = inputText,
-            onValueChange = onInputChanged,
-            placeholder = { Text("اكتب سؤالك هنا...") },
-            modifier = Modifier.weight(1f),
-            shape = RoundedCornerShape(24.dp),
-            colors = OutlinedTextFieldDefaults.colors(
-                unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
-                focusedBorderColor = MaterialTheme.colorScheme.primary
-            ),
-            maxLines = 4
-        )
-
-        FilledIconButton(
-            onClick = onSend,
-            enabled = inputText.isNotBlank() && !isLoading,
-            modifier = Modifier.size(48.dp),
-            shape = RoundedCornerShape(24.dp)
-        ) {
-            Icon(Icons.AutoMirrored.Outlined.Send, contentDescription = "إرسال")
-        }
-    }
+fun Dot(delay: Int) {
+    val transition = rememberInfiniteTransition()
+    val alpha by transition.animateFloat(initialValue = 0.3f, targetValue = 1f, animationSpec = infiniteRepeatable(animation = tween(durationMillis = 600, delayMillis = delay, easing = LinearEasing), repeatMode = RepeatMode.Reverse))
+    Box(modifier = Modifier.size(8.dp).background(MaterialTheme.colorScheme.primary.copy(alpha = alpha), CircleShape))
 }

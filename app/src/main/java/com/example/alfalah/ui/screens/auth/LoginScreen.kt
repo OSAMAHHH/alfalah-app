@@ -1,27 +1,33 @@
 package com.example.alfalah.ui.screens.auth
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
+import androidx.compose.animation.*
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material.icons.outlined.Eco
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.example.alfalah.data.repository.AuthRepository
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-import okhttp3.OkHttpClient
-import okhttp3.Request
-import java.security.cert.X509Certificate
 
 @Composable
 fun LoginScreen(
@@ -32,181 +38,262 @@ fun LoginScreen(
 ) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
+    var passwordVisible by remember { mutableStateOf(false) }
     var isLoading by remember { mutableStateOf(false) }
     var errorMsg by remember { mutableStateOf<String?>(null) }
-    var debugResult by remember { mutableStateOf("") }
     val scope = rememberCoroutineScope()
 
-    Surface(
-        modifier = modifier.fillMaxSize(),
-        color = MaterialTheme.colorScheme.background
-    ) {
-        Column(
+    // Background gradient: very subtle green touch fading to surface
+    val backgroundBrush = Brush.verticalGradient(
+        colors = listOf(
+            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f),
+            MaterialTheme.colorScheme.surface,
+            MaterialTheme.colorScheme.surface
+        )
+    )
+
+    Scaffold(
+        containerColor = Color.Transparent,
+        modifier = modifier
+            .fillMaxSize()
+            .background(backgroundBrush)
+    ) { padding ->
+        Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(32.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
+                .padding(padding)
         ) {
-            Text(
-                text = "الفلاح 🌱",
-                style = MaterialTheme.typography.displaySmall,
-                color = MaterialTheme.colorScheme.primary,
-                fontWeight = FontWeight.Bold
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = "تسجيل الدخول للمتابعة",
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Spacer(modifier = Modifier.height(48.dp))
-
-            OutlinedTextField(
-                value = email,
-                onValueChange = { email = it },
-                label = { Text("البريد الإلكتروني") },
-                leadingIcon = { Icon(Icons.Default.Email, contentDescription = null) },
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp),
-                singleLine = true
-            )
-            Spacer(modifier = Modifier.height(16.dp))
-
-            OutlinedTextField(
-                value = password,
-                onValueChange = { password = it },
-                label = { Text("كلمة المرور") },
-                leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null) },
-                visualTransformation = PasswordVisualTransformation(),
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp),
-                singleLine = true
-            )
-
-            AnimatedVisibility(
-                visible = errorMsg != null,
-                enter = fadeIn(),
-                exit = fadeOut()
-            ) {
-                Text(
-                    text = errorMsg ?: "",
-                    color = MaterialTheme.colorScheme.error,
-                    style = MaterialTheme.typography.bodySmall,
-                    modifier = Modifier.padding(top = 8.dp)
-                )
-            }
-
-            Spacer(modifier = Modifier.height(32.dp))
-
-            Button(
-                onClick = {
-                    scope.launch {
-                        isLoading = true
-                        errorMsg = null
-                        val result = authRepository.login(email, password)
-                        if (result.isSuccess) {
-                            onLoginSuccess()
-                        } else {
-                            errorMsg = result.exceptionOrNull()?.message ?: "خطأ في تسجيل الدخول"
-                        }
-                        isLoading = false
-                    }
-                },
+            Column(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .height(56.dp),
-                shape = RoundedCornerShape(50),
-                enabled = !isLoading
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+                    .padding(bottom = 80.dp), // To ensure content isn't hidden behind signature
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                if (isLoading) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(24.dp),
-                        color = MaterialTheme.colorScheme.onPrimary
-                    )
-                } else {
-                    Text("تسجيل الدخول", style = MaterialTheme.typography.titleMedium)
-                }
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            TextButton(onClick = onNavigateToRegister) {
-                Text("ليس لديك حساب؟ سجل الآن", color = MaterialTheme.colorScheme.primary)
-            }
-
-            Spacer(modifier = Modifier.height(32.dp))
-            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Debug TLS Button
-            OutlinedButton(
-                onClick = {
-                    scope.launch {
-                        debugResult = "جاري الفحص..."
-                        debugResult = withContext(Dispatchers.IO) {
-                            try {
-                                val client = OkHttpClient.Builder().build()
-                                val request = Request.Builder()
-                                    .url("https://alfalah-app-production.up.railway.app/health")
-                                    .build()
-
-                                val response = client.newCall(request).execute()
-                                val sb = java.lang.StringBuilder()
-                                sb.append("A) Android -> /health: SUCCESS\n")
-                                sb.append("C) HTTP status: ${response.code}\n")
-
-                                val certs = response.handshake?.peerCertificates
-                                sb.append("--- Certificates ---\n")
-                                certs?.forEachIndexed { index, cert ->
-                                    if (cert is X509Certificate) {
-                                        sb.append("[$index] Issuer: ${cert.issuerDN.name}\n")
-                                        sb.append("    Subject: ${cert.subjectDN.name}\n")
-                                    }
-                                }
-                                sb.toString()
-                            } catch (e: Exception) {
-                                val sb = java.lang.StringBuilder()
-                                sb.append("A) Android -> /health: FAILED\n")
-                                sb.append("B) Exception: ${e.javaClass.name}\n")
-                                sb.append("Message: ${e.message}\n")
-
-                                var cause = e.cause
-                                var depth = 1
-                                while (cause != null) {
-                                    sb.append("Cause $depth: ${cause.javaClass.name}: ${cause.message}\n")
-                                    cause = cause.cause
-                                    depth++
-                                }
-                                sb.toString()
-                            }
-                        }
-                    }
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(50.dp),
-                shape = RoundedCornerShape(12.dp)
-            ) {
-                Text("تشخيص الاتصال (DEBUG)")
-            }
-
-            AnimatedVisibility(visible = debugResult.isNotEmpty()) {
+                
+                Spacer(modifier = Modifier.height(64.dp))
+                
+                // Logo Container
                 Surface(
-                    color = MaterialTheme.colorScheme.errorContainer,
-                    shape = RoundedCornerShape(12.dp),
+                    shape = RoundedCornerShape(32.dp),
+                    color = MaterialTheme.colorScheme.primaryContainer,
+                    shadowElevation = 8.dp,
+                    modifier = Modifier.size(110.dp)
+                ) {
+                    Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+                        Icon(
+                            imageVector = Icons.Outlined.Eco,
+                            contentDescription = "شعار الفَلّاح",
+                            modifier = Modifier.size(60.dp),
+                            tint = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
+                    }
+                }
+                
+                Spacer(modifier = Modifier.height(28.dp))
+                
+                // App Name
+                Text(
+                    text = "الفَلّاح",
+                    style = MaterialTheme.typography.displayMedium.copy(
+                        fontWeight = FontWeight.ExtraBold
+                    ),
+                    color = MaterialTheme.colorScheme.primary
+                )
+                
+                Spacer(modifier = Modifier.height(8.dp))
+                
+                // Tagline
+                Text(
+                    text = "مساعدك الذكي لكل ما يخص الزراعة",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                
+                Spacer(modifier = Modifier.height(48.dp))
+                
+                // Form Fields Column
+                Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(top = 16.dp)
+                        .padding(horizontal = 32.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Text(
-                        text = debugResult,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onErrorContainer,
-                        modifier = Modifier.padding(16.dp)
+                    // Error Message
+                    AnimatedVisibility(
+                        visible = errorMsg != null,
+                        enter = fadeIn() + expandVertically(),
+                        exit = fadeOut() + shrinkVertically()
+                    ) {
+                        Surface(
+                            color = MaterialTheme.colorScheme.errorContainer,
+                            shape = RoundedCornerShape(16.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(bottom = 24.dp)
+                        ) {
+                            Text(
+                                text = errorMsg ?: "",
+                                color = MaterialTheme.colorScheme.onErrorContainer,
+                                modifier = Modifier.padding(16.dp),
+                                style = MaterialTheme.typography.bodyMedium,
+                                textAlign = TextAlign.Center
+                            )
+                        }
+                    }
+                    
+                    // Email Input
+                    OutlinedTextField(
+                        value = email,
+                        onValueChange = { email = it },
+                        label = { Text("البريد الإلكتروني") },
+                        leadingIcon = { 
+                            Icon(
+                                imageVector = Icons.Default.Email, 
+                                contentDescription = "البريد الإلكتروني",
+                                tint = MaterialTheme.colorScheme.primary
+                            ) 
+                        },
+                        keyboardOptions = KeyboardOptions(
+                            keyboardType = KeyboardType.Email,
+                            imeAction = ImeAction.Next
+                        ),
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(20.dp),
+                        singleLine = true,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
+                            focusedBorderColor = MaterialTheme.colorScheme.primary
+                        )
                     )
+                    
+                    Spacer(modifier = Modifier.height(20.dp))
+                    
+                    // Password Input
+                    OutlinedTextField(
+                        value = password,
+                        onValueChange = { password = it },
+                        label = { Text("كلمة المرور") },
+                        leadingIcon = { 
+                            Icon(
+                                imageVector = Icons.Default.Lock, 
+                                contentDescription = "كلمة المرور",
+                                tint = MaterialTheme.colorScheme.primary
+                            ) 
+                        },
+                        trailingIcon = {
+                            IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                                Icon(
+                                    imageVector = if (passwordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff,
+                                    contentDescription = if (passwordVisible) "إخفاء كلمة المرور" else "إظهار كلمة المرور",
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        },
+                        visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                        keyboardOptions = KeyboardOptions(
+                            keyboardType = KeyboardType.Password,
+                            imeAction = ImeAction.Done
+                        ),
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(20.dp),
+                        singleLine = true,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
+                            focusedBorderColor = MaterialTheme.colorScheme.primary
+                        )
+                    )
+                    
+                    // Forgot Password Link
+                    Box(
+                        modifier = Modifier.fillMaxWidth(),
+                        contentAlignment = Alignment.CenterStart
+                    ) {
+                        TextButton(
+                            onClick = { /* No function implemented in project */ },
+                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
+                            modifier = Modifier.padding(top = 8.dp)
+                        ) {
+                            Text(
+                                text = "نسيت كلمة المرور؟",
+                                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                    }
+                    
+                    Spacer(modifier = Modifier.height(32.dp))
+                    
+                    // Login Button
+                    Button(
+                        onClick = {
+                            if (email.isNotBlank() && password.isNotBlank()) {
+                                isLoading = true
+                                errorMsg = null
+                                scope.launch {
+                                    val result = authRepository.login(email.trim(), password)
+                                    isLoading = false
+                                    if (result.isSuccess) {
+                                        onLoginSuccess()
+                                    } else {
+                                        errorMsg = result.exceptionOrNull()?.message ?: "حدث خطأ أثناء تسجيل الدخول"
+                                    }
+                                }
+                            } else {
+                                errorMsg = "الرجاء إدخال البريد الإلكتروني وكلمة المرور"
+                            }
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(56.dp),
+                        shape = RoundedCornerShape(20.dp),
+                        enabled = !isLoading,
+                        elevation = ButtonDefaults.buttonElevation(defaultElevation = 2.dp, pressedElevation = 0.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.primary
+                        )
+                    ) {
+                        if (isLoading) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(26.dp),
+                                color = MaterialTheme.colorScheme.onPrimary,
+                                strokeWidth = 2.5.dp
+                            )
+                        } else {
+                            Text(
+                                text = "تسجيل الدخول",
+                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+                            )
+                        }
+                    }
+                    
+                    Spacer(modifier = Modifier.height(24.dp))
+                    
+                    // Register Link
+                    TextButton(onClick = onNavigateToRegister) {
+                        Text(
+                            text = "ليس لديك حساب؟ ",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            style = MaterialTheme.typography.bodyLarge
+                        )
+                        Text(
+                            text = "إنشاء حساب",
+                            color = MaterialTheme.colorScheme.primary,
+                            style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold)
+                        )
+                    }
                 }
             }
+            
+            // Developer Signature
+            Text(
+                text = "تطوير: أسامة غازي",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(bottom = 24.dp)
+            )
         }
     }
 }
