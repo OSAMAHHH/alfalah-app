@@ -20,12 +20,12 @@ class WeatherRepository {
     suspend fun getCurrentWeather(): Result<WeatherInfo> = withContext(Dispatchers.IO) {
         try {
             // Get location via IP
-            val ipRequest = Request.Builder().url("http://ip-api.com/json").build()
+            val ipRequest = Request.Builder().url("https://ipwho.is/").build()
             val ipResponse = client.newCall(ipRequest).execute()
             val ipData = JSONObject(ipResponse.body?.string() ?: "{}")
             
-            val lat = ipData.optDouble("lat", 24.7136) // Default Riyadh
-            val lon = ipData.optDouble("lon", 46.6753)
+            val lat = ipData.optDouble("latitude", 24.7136) // Default Riyadh
+            val lon = ipData.optDouble("longitude", 46.6753)
             val city = ipData.optString("city", "الرياض")
 
             // Get weather via Open-Meteo

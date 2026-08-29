@@ -34,10 +34,12 @@ import kotlinx.coroutines.launch
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AdminDashboardScreen(
+    
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
     firestoreRepository: FirestoreRepository = remember { FirestoreRepository() }
 ) {
+    val context = androidx.compose.ui.platform.LocalContext.current
     var selectedTab by remember { mutableIntStateOf(0) }
     val tabs = listOf("المنتجات", "المحاصيل", "المشاكل")
     
@@ -148,7 +150,8 @@ fun AdminDashboardScreen(
                 onDismiss = { showProductDialog = null },
                 onSave = { p ->
                     scope.launch {
-                        if (isAdding) firestoreRepository.addProduct(p) else firestoreRepository.updateProduct(p)
+                        val r = if (isAdding) firestoreRepository.addProduct(p) else firestoreRepository.updateProduct(p)
+                        if (r.isFailure) android.widget.Toast.makeText(context, r.exceptionOrNull()?.message ?: "Error", android.widget.Toast.LENGTH_LONG).show()
                         showProductDialog = null
                         loadData()
                     }
@@ -163,7 +166,8 @@ fun AdminDashboardScreen(
                 onDismiss = { showCropDialog = null },
                 onSave = { c ->
                     scope.launch {
-                        if (isAdding) firestoreRepository.addCrop(c) else firestoreRepository.updateCrop(c)
+                        val r = if (isAdding) firestoreRepository.addCrop(c) else firestoreRepository.updateCrop(c)
+                        if (r.isFailure) android.widget.Toast.makeText(context, r.exceptionOrNull()?.message ?: "Error", android.widget.Toast.LENGTH_LONG).show()
                         showCropDialog = null
                         loadData()
                     }
@@ -180,7 +184,8 @@ fun AdminDashboardScreen(
                 onDismiss = { showProblemDialog = null },
                 onSave = { pr ->
                     scope.launch {
-                        if (isAdding) firestoreRepository.addProblem(pr) else firestoreRepository.updateProblem(pr)
+                        val r = if (isAdding) firestoreRepository.addProblem(pr) else firestoreRepository.updateProblem(pr)
+                        if (r.isFailure) android.widget.Toast.makeText(context, r.exceptionOrNull()?.message ?: "Error", android.widget.Toast.LENGTH_LONG).show()
                         showProblemDialog = null
                         loadData()
                     }
