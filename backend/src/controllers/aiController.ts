@@ -25,7 +25,8 @@ export const handleChat = async (req: AuthenticatedRequest, res: Response) => {
     
     // Check if it's our custom AiServiceError
     if (error && error.status) {
-       return res.status(error.status).json({ error: error.message });
+      const statusCode = (error.status === 404 || error.status === 403) ? 500 : error.status;
+      return res.status(statusCode).json({ error: error.message });
     }
     
     // Fallback for unexpected errors
