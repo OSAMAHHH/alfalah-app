@@ -1,11 +1,23 @@
 import { db } from '../config/firebase';
 import { Crop, AgriculturalProblem, Product } from '../types';
 
+// --- In-Memory Caches ---
+let cropsCache: { data: Crop[], timestamp: number } | null = null;
+let problemsCache: Record<string, { data: AgriculturalProblem[], timestamp: number }> = {};
+let productsCache: Record<string, { data: Product, timestamp: number }> = {};
+
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
 export const getActiveCrops = async (): Promise<Crop[]> => {
   if (!db) return [];
+  if (cropsCache && Date.now() - cropsCache.timestamp < CACHE_TTL) {
+    return cropsCache.data;
+  }
   try {
     const snapshot = await db.collection('crops').where('isActive', '==', true).get();
-    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Crop));
+    const results = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Crop));
+    cropsCache = { data: results, timestamp: Date.now() };
+    return results;
   } catch (error) {
     console.error('Error fetching crops:', error);
     return [];
@@ -14,12 +26,17 @@ export const getActiveCrops = async (): Promise<Crop[]> => {
 
 export const getActiveProblemsForCrop = async (cropId: string): Promise<AgriculturalProblem[]> => {
   if (!db) return [];
+  if (problemsCache[cropId] && Date.now() - problemsCache[cropId].timestamp < CACHE_TTL) {
+    return problemsCache[cropId].data;
+  }
   try {
     const snapshot = await db.collection('agricultural_problems')
       .where('cropId', '==', cropId)
       .where('isActive', '==', true)
       .get();
-    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as AgriculturalProblem));
+    const results = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as AgriculturalProblem));
+    problemsCache[cropId] = { data: results, timestamp: Date.now() };
+    return results;
   } catch (error) {
     console.error('Error fetching problems:', error);
     return [];
@@ -28,21 +45,32 @@ export const getActiveProblemsForCrop = async (cropId: string): Promise<Agricult
 
 export const getActiveProductsByIds = async (productIds: string[]): Promise<Product[]> => {
   if (!db || !productIds || productIds.length === 0) return [];
-  try {
-    // Firestore 'in' query supports up to 30 elements. We assume productIds <= 30.
-    const snapshot = await db.collection('products')
-      .where('isActive', '==', true)
-      .where('__name__', 'in', productIds.slice(0, 30))
-      .get();
-    
-    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product));
-  } catch (error) {
-    console.error('Error fetching products by ids:', error);
-    return [];
+  
+  const missingIds = productIds.filter(id => !productsCache[id] || Date.now() - productsCache[id].timestamp >= CACHE_TTL);
+  
+  if (missingIds.length > 0) {
+    try {
+      // Chunking for Firestore 'in' query limit of 30
+      for (let i = 0; i < missingIds.length; i += 30) {
+        const chunk = missingIds.slice(i, i + 30);
+        const snapshot = await db.collection('products')
+          .where('isActive', '==', true)
+          .where('__name__', 'in', chunk)
+          .get();
+        
+        snapshot.docs.forEach(doc => {
+          productsCache[doc.id] = { data: { id: doc.id, ...doc.data() } as Product, timestamp: Date.now() };
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching products by ids:', error);
+    }
   }
+  
+  return productIds.map(id => productsCache[id]?.data).filter(Boolean);
 };
 
-// Normalizes Arabic text for better matching (removes diacritics, normalizes alef, teh marbuta)
+// Normalizes Arabic text for better matching
 const normalizeArabicText = (text: string): string => {
   if (!text) return '';
   return text
@@ -59,70 +87,71 @@ export interface MatchResult {
   score: number;
 }
 
-export const matchProblem = async (
-  extractedCropName: string | null,
-  extractedSymptoms: string[],
-  extractedProblemType: string | null
-): Promise<{ matches: MatchResult[], matchedCrop: Crop | null }> => {
-  
-  if (!extractedCropName) return { matches: [], matchedCrop: null };
-
+export const analyzeQuery = async (query: string): Promise<{ intent: string, matchedCrop: Crop | null, matches: MatchResult[] }> => {
+  const normalizedQuery = normalizeArabicText(query);
   const activeCrops = await getActiveCrops();
-  const normalizedExtractedCrop = normalizeArabicText(extractedCropName);
-
-  // 1. Find crop match
+  
   let matchedCrop: Crop | null = null;
   for (const crop of activeCrops) {
     const cropNames = [crop.name, ...(crop.synonyms || [])].map(normalizeArabicText);
-    if (cropNames.some(name => name.includes(normalizedExtractedCrop) || normalizedExtractedCrop.includes(name))) {
+    if (cropNames.some(name => normalizedQuery.includes(name))) {
       matchedCrop = crop;
       break;
     }
   }
 
-  if (!matchedCrop) {
-    return { matches: [], matchedCrop: null };
+  // Keywords that indicate agricultural intent
+  const agriKeywords = /زراع|محصول|نبات|سماد|مبيد|حشر|مرض|ورق|ثمر|قات|طماطم|شجر|جذر|ترب|سقي|ري|تعفن|اصفرار|ذبول|عنكبوت|دودة|بق|من/;
+  const isAgricultural = matchedCrop !== null || agriKeywords.test(normalizedQuery);
+
+  if (!isAgricultural) {
+    return { intent: "GENERAL", matchedCrop: null, matches: [] };
   }
 
-  // 2. Fetch problems for matched crop
-  const problems = await getActiveProblemsForCrop(matchedCrop.id);
   const matchResults: MatchResult[] = [];
-
-  const normalizedExtractedSymptoms = extractedSymptoms.map(normalizeArabicText);
-  const normalizedExtractedType = extractedProblemType ? normalizeArabicText(extractedProblemType) : '';
-
-  for (const problem of problems) {
-    let score = 40; // Base score for crop match
-
-    // Problem Type Match (10 points)
-    if (normalizedExtractedType) {
-      const pType = normalizeArabicText(problem.type || '');
-      if (pType && (pType.includes(normalizedExtractedType) || normalizedExtractedType.includes(pType))) {
-        score += 10;
-      }
-    }
-
-    // Symptoms Match (50 points)
-    const problemSymptoms = [...(problem.symptoms || []), ...(problem.synonyms || [])].map(normalizeArabicText);
-    let symptomMatchCount = 0;
+  if (matchedCrop) {
+    const problems = await getActiveProblemsForCrop(matchedCrop.id);
+    const queryWords = normalizedQuery.split(/\s+/).filter(w => w.length > 2);
     
-    for (const extSymptom of normalizedExtractedSymptoms) {
-      // Partial match for symptoms
-      if (problemSymptoms.some(ps => ps.includes(extSymptom) || extSymptom.includes(ps))) {
-        symptomMatchCount++;
+    for (const problem of problems) {
+      let score = 40; // Base score
+      
+      const pType = normalizeArabicText(problem.type || '');
+      if (pType && normalizedQuery.includes(pType)) score += 10;
+      
+      const problemSymptoms = [...(problem.symptoms || []), ...(problem.synonyms || [])].map(normalizeArabicText);
+      let symptomMatchCount = 0;
+      
+      for (const sym of problemSymptoms) {
+        if (!sym) continue;
+        if (normalizedQuery.includes(sym)) {
+          symptomMatchCount += 2;
+          continue;
+        }
+        const symWords = sym.split(/\s+/).filter(w => w.length > 2);
+        if (symWords.some(sw => queryWords.some(qw => qw.includes(sw) || sw.includes(qw)))) {
+          symptomMatchCount += 1;
+        }
       }
+      
+      if (problemSymptoms.length > 0) {
+        const matchRatio = symptomMatchCount / Math.max(1, problemSymptoms.length);
+        score += Math.min(50, matchRatio * 50);
+      }
+      
+      matchResults.push({ problem, score });
     }
-
-    if (normalizedExtractedSymptoms.length > 0) {
-      const symptomScore = (symptomMatchCount / normalizedExtractedSymptoms.length) * 50;
-      score += symptomScore;
-    }
-
-    matchResults.push({ problem, score });
+    matchResults.sort((a, b) => b.score - a.score);
   }
 
-  // Sort by score descending
-  matchResults.sort((a, b) => b.score - a.score);
+  return { intent: "AGRICULTURAL", matchedCrop, matches: matchResults };
+};
 
-  return { matches: matchResults, matchedCrop };
+// Kept for backward compatibility if used elsewhere
+export const matchProblem = async (
+  extractedCropName: string | null,
+  extractedSymptoms: string[],
+  extractedProblemType: string | null
+): Promise<{ matches: MatchResult[], matchedCrop: Crop | null }> => {
+  return analyzeQuery(extractedCropName || "");
 };

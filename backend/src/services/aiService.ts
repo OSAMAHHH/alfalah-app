@@ -1,6 +1,6 @@
 import { AiChatRequest, AiChatResponse } from '../types';
 import { GoogleGenAI } from '@google/genai';
-import { matchProblem, getActiveProductsByIds } from './knowledgeBaseService';
+import { analyzeQuery, getActiveProductsByIds } from './knowledgeBaseService';
 
 export class AiServiceError extends Error {
   status: number;
@@ -12,7 +12,7 @@ export class AiServiceError extends Error {
 
 const delay = (ms: number) => new Promise(res => setTimeout(res, ms));
 
-const generateWithRetry = async (ai: GoogleGenAI, model: string, contents: string, maxRetries = 3): Promise<any> => {
+const generateWithRetry = async (ai: GoogleGenAI, model: string, contents: string, maxRetries = 2): Promise<any> => {
   let attempt = 0;
   while (attempt <= maxRetries) {
     try {
@@ -23,18 +23,20 @@ const generateWithRetry = async (ai: GoogleGenAI, model: string, contents: strin
                                        (error?.message?.includes('503') || error?.message?.includes('high demand') || error?.message?.includes('UNAVAILABLE') ? 503 : 500));
       if ((status === 429 || status === 503) && attempt < maxRetries) {
         attempt++;
-        const backoffTime = Math.pow(2, attempt) * 1000 + Math.random() * 1000;
+        // Reduced backoff for faster response: 1s to 2s
+        const backoffTime = 1000 + Math.random() * 1000;
         console.log(`Retrying in ${Math.round(backoffTime)}ms...`);
         await delay(backoffTime);
         continue;
       }
+      
+      let errorMessage = "عذراً، المساعد الذكي غير قادر على معالجة طلبك حالياً.";
       if (status === 429) {
-        throw new AiServiceError("تجاوزت حد الاستخدام أو يوجد ضغط كبير. يرجى المحاولة بعد قليل.", 429);
+        errorMessage = "تجاوزت حد الاستخدام أو يوجد ضغط كبير. يرجى المحاولة بعد قليل.";
       } else if (status === 503) {
-        throw new AiServiceError("خوادم الذكاء الاصطناعي غير متاحة مؤقتاً. يرجى المحاولة لاحقاً.", 503);
-      } else {
-        throw new AiServiceError("حدث خطأ أثناء التواصل مع خوادم الذكاء الاصطناعي.", 500);
+        errorMessage = "خوادم الذكاء الاصطناعي تواجه ضغطاً كبيراً أو غير متاحة مؤقتاً. يرجى المحاولة لاحقاً.";
       }
+      throw new AiServiceError(errorMessage, status);
     }
   }
 };
@@ -46,119 +48,76 @@ export const processChat = async (request: AiChatRequest): Promise<AiChatRespons
   }
   const ai = new GoogleGenAI({ apiKey });
 
-  const extractionPrompt = `
-    قم بتحليل استفسار المستخدم التالي بدقة وحدد نية المستخدم (Intent).
-    إذا كان السؤال يتعلق بالزراعة، المحاصيل (بما فيها القات)، النباتات، أمراض النباتات، الآفات، الأسمدة، المبيدات أو المنتجات الزراعية، فالنية هي "AGRICULTURAL".
-    إذا كان السؤال عاماً لا علاقة له بالزراعة (مثل أسئلة جغرافية، عامة، ترحيب مجرد لا يتعلق بالزراعة)، فالنية هي "GENERAL".
+  // 1. Local Query Analysis (0 Gemini calls, cached Firestore)
+  const { intent, matchedCrop, matches } = await analyzeQuery(request.message);
 
-    استخرج المعلومات التالية وأعدها بصيغة JSON فقط بدون أي نصوص إضافية أو Markdown:
-    {
-      "intent": "AGRICULTURAL أو GENERAL",
-      "cropName": "اسم المحصول (بما في ذلك القات)، أو null إذا لم يذكر",
-      "symptoms": ["العرض الأول", "العرض الثاني"],
-      "problemType": "نوع المشكلة مثل حشرة، مرض، نقص عناصر، أو null إذا لم يذكر"
-    }
-    
-    استفسار المستخدم: "${request.message}"
-  `;
-
-  const extractionResponse = await generateWithRetry(ai, 'gemini-3.6-flash', extractionPrompt);
-  
-  let extractedData = { intent: "GENERAL", cropName: null, symptoms: [], problemType: null };
-  try {
-    const rawText = extractionResponse.text?.replace(/\x60\x60\x60json/g, '').replace(/\x60\x60\x60/g, '').trim() || '{}';
-    extractedData = JSON.parse(rawText);
-  } catch (e) {
-    console.warn("Failed to parse Gemini extraction JSON", e);
-  }
-
-  if (extractedData.intent === "GENERAL") {
-    // General chat, bypass RAG
-    const generalPrompt = `
-      أنت مساعد مفيد وذكي. أجب على سؤال المستخدم بشكل طبيعي وودي. 
-      سؤال المستخدم: "${request.message}"
-    `;
-    const finalResponse = await generateWithRetry(ai, 'gemini-3.6-flash', generalPrompt);
-    return {
-      answer: finalResponse.text || "عذراً، حدث خطأ أثناء صياغة الإجابة.",
-      recommendedProducts: []
-    };
-  }
-
-  // Intent is AGRICULTURAL
   let systemContext = "";
   let finalRecommendedProductIds: string[] = [];
 
-  if (extractedData.cropName) {
-    const { matches, matchedCrop } = await matchProblem(
-      extractedData.cropName, 
-      extractedData.symptoms, 
-      extractedData.problemType
-    );
-
-    if (matchedCrop && matches.length > 0) {
-      const topMatch = matches[0];
-      if (topMatch.score >= 70) {
-        // High confidence
-        const products = await getActiveProductsByIds(topMatch.problem.recommendedProductIds || []);
+  // 2. Build Context based on local analysis
+  if (intent === "GENERAL") {
+    systemContext = `
+      أنت مساعد مفيد وذكي ومختصر. 
+      هذا السؤال ليس زراعياً. أجب على سؤال المستخدم بشكل طبيعي وودي ومباشر.
+    `;
+  } else {
+    // Intent is AGRICULTURAL
+    if (matchedCrop) {
+      if (matches.length > 0) {
+        // Take top 2 matches to give Gemini context without overloading prompt
+        const topMatches = matches.slice(0, 2);
+        
+        // Collect recommended products from top matches
+        const productIds = new Set<string>();
+        topMatches.forEach(m => {
+          if (m.problem.recommendedProductIds) {
+            m.problem.recommendedProductIds.forEach(id => productIds.add(id));
+          }
+        });
+        
+        const products = await getActiveProductsByIds(Array.from(productIds));
         finalRecommendedProductIds = products.map((p: any) => p.id);
         
         systemContext = `
           أنت مساعد زراعي خبير وموثوق في تطبيق 'الفلاح'.
-          بناءً على قاعدة المعرفة الخاصة بنا، المشكلة الأقرب بنسبة مطابقة عالية لمحصول (${matchedCrop.name}) هي: (${topMatch.problem.name}).
-          الأسباب: ${topMatch.problem.causes}
-          طرق العلاج: ${topMatch.problem.treatment}
+          المحصول المذكور: (${matchedCrop.name}).
+          بناءً على قاعدة المعرفة الخاصة بنا، إليك أبرز المشاكل الزراعية المطابقة لحالة المستخدم:
+          ${topMatches.map(m => `- مشكلة: ${m.problem.name}\n  الأسباب: ${m.problem.causes}\n  العلاج: ${m.problem.treatment}`).join('\n\n')}
+          
           المنتجات المتوفرة للعلاج في متجرنا: ${products.map((p: any) => p.name + ' - ' + p.usage).join(', ')}
           
           التعليمات لك:
-          - صغ إجابة تفصيلية ومطمئنة للمستخدم توضح المشكلة والحلول بناء على هذه المعلومات فقط.
+          - اقرأ سؤال المستخدم وأعراضه بعناية، ثم استنتج المشكلة الأقرب من القائمة أعلاه.
+          - صغ إجابة تفصيلية ومطمئنة للمستخدم توضح المشكلة والحلول.
           - اذكر المنتجات المرفقة في سياق حديثك فقط كحل مقترح (إذا توفرت).
-          - تحذير هام: لا تخترع أو تقترح أسماء منتجات، جرعات، أو معرفات من خارج النظام أبداً.
+          - تحذير هام جداً: لا تخترع أو تقترح أسماء منتجات، جرعات، أو أسمدة، أو مبيدات، أو معرفات من خارج النظام أبداً.
           - لا تذكر النقاط (Scores).
         `;
-      } else if (topMatch.score >= 40) {
-        // Low confidence
-        systemContext = `
-          أنت مساعد زراعي في تطبيق 'الفلاح'.
-          المستخدم يواجه مشكلة في محصول (${matchedCrop.name}). الأعراض المذكورة تتشابه جزئياً مع المشكلة: (${topMatch.problem.name}).
-          التعليمات:
-          - لا تقم بتشخيص قاطع. استخدم عبارات مثل "قد تتوافق الأعراض مع..." 
-          - يمكنك إضافة معلومات زراعية عامة صحيحة عن هذا المحصول.
-          - تحذير هام: لا تخترع منتجات أو أدوية من خارج قاعدة المعرفة. لا تقترح منتجات في هذه المرحلة.
-        `;
       } else {
-        // Matched crop but no matching problem
+        // Matched crop but no matching problem found
         systemContext = `
           أنت مساعد زراعي خبير في تطبيق 'الفلاح'.
-          المحصول المذكور هو (${matchedCrop.name}) (قد يكون القات أو أي محصول آخر). الأعراض لا تتطابق مع مشكلة معينة في قاعدة بياناتنا.
+          المحصول المذكور هو (${matchedCrop.name}) (قد يكون القات أو أي محصول آخر).
           التعليمات لك:
           - أجب بناءً على معرفتك الزراعية العامة وخبرتك كمستشار زراعي.
-          - قدم نصائح زراعية مفيدة وصحيحة.
-          - تحذير هام جداً: يُمنع منعاً باتاً اختراع أسماء منتجات زراعية تجارية أو مبيدات أو أسمدة محددة غير موجودة. اكتفِ بالنصائح العامة (مثل: استخدم سماد عضوي، تأكد من الري، الخ).
+          - قدم نصائح زراعية مفيدة وصحيحة لهذا المحصول.
+          - تحذير هام جداً: يُمنع منعاً باتاً اختراع أو اقتراح أسماء منتجات زراعية تجارية أو مبيدات أو أسمدة محددة غير موجودة في متجرنا. اكتفِ بالنصائح العامة أو المكونات الفعالة.
         `;
       }
     } else {
-      // Crop mentioned but NOT found in our DB at all
+      // Agricultural question but NO specific crop matched
       systemContext = `
         أنت مساعد زراعي خبير في تطبيق 'الفلاح'.
-        المستخدم سأل عن محصول أو نبات (مثل: ${extractedData.cropName}) غير مسجل حالياً في قاعدة بياناتنا الخاصة بالمتجر.
+        يسأل المستخدم سؤالاً زراعياً.
         التعليمات لك:
-        - لا تعتذر أو ترفض الإجابة. أجب على سؤاله أو استفساره الزراعي بناءً على خبرتك العامة.
-        - قدم نصائح زراعية علمية وصحيحة.
-        - تحذير هام جداً: يُمنع منعاً باتاً اقتراح أسماء منتجات تجارية أو مبيدات أو أسمدة محددة. اكتفِ بالأسماء العلمية أو النصائح والإجراءات العامة.
+        - أجب على سؤاله الزراعي بشكل مفيد وعلمي.
+        - قدم نصائح عامة مفيدة.
+        - تحذير هام جداً: يُمنع منعاً باتاً اختراع أو اقتراح أسماء منتجات تجارية أو مبيدات أو أسمدة محددة غير موجودة في متجرنا. اكتفِ بالأسماء العلمية أو الإجراءات الزراعية.
       `;
     }
-  } else {
-    // Agricultural question but NO specific crop mentioned (e.g. "ما هي أفضل طريقة للري؟" أو "ما فوائد هذا السماد؟")
-    systemContext = `
-      أنت مساعد زراعي خبير في تطبيق 'الفلاح'.
-      يسأل المستخدم سؤالاً زراعياً عاماً لا يحدد فيه محصولاً معيناً.
-      التعليمات لك:
-      - أجب على سؤاله الزراعي بشكل مفيد وعلمي.
-      - تحذير هام جداً: يُمنع اختراع أسماء منتجات تجارية.
-    `;
   }
 
+  // 3. Single Gemini Call
   const finalPrompt = `
     معلومات وتوجيهات لك (لا تذكرها للمستخدم مباشرة، بل نفذها):
     ${systemContext}
@@ -166,7 +125,8 @@ export const processChat = async (request: AiChatRequest): Promise<AiChatRespons
     سؤال المستخدم: "${request.message}"
   `;
 
-  const finalResponse = await generateWithRetry(ai, 'gemini-3.6-flash', finalPrompt);
+  // We use gemini-1.5-flash as it is the standard, fast, and supported model in the @google/genai SDK.
+  const finalResponse = await generateWithRetry(ai, 'gemini-1.5-flash', finalPrompt);
   
   return {
     answer: finalResponse.text || "عذراً، حدث خطأ أثناء صياغة الإجابة.",
