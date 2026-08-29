@@ -1,9 +1,13 @@
-package com.example.alfalah.ui.screens.chat
+import os
+
+files = {
+"app/src/main/java/com/example/alfalah/ui/screens/chat/ChatScreen.kt": """package com.example.alfalah.ui.screens.chat
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.slideInVertically
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -14,6 +18,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.automirrored.outlined.Send
 import androidx.compose.material.icons.outlined.CameraAlt
+import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -31,15 +36,12 @@ fun ChatScreen(
     modifier: Modifier = Modifier,
     viewModel: ChatViewModel = viewModel()
 ) {
-    val messages by viewModel.messages.collectAsState()
-    val isLoading by viewModel.isLoading.collectAsState()
-    var inputText by remember { mutableStateOf("") }
-    
+    val uiState by viewModel.uiState.collectAsState()
     val listState = rememberLazyListState()
 
-    LaunchedEffect(messages.size) {
-        if (messages.isNotEmpty()) {
-            listState.animateScrollToItem(messages.size - 1)
+    LaunchedEffect(uiState.messages.size) {
+        if (uiState.messages.isNotEmpty()) {
+            listState.animateScrollToItem(uiState.messages.size - 1)
         }
     }
 
@@ -56,6 +58,11 @@ fun ChatScreen(
                         Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = "رجوع")
                     }
                 },
+                actions = {
+                    IconButton(onClick = { viewModel.clearChat() }) {
+                        Icon(Icons.Outlined.Refresh, contentDescription = "محادثة جديدة")
+                    }
+                },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.background
                 )
@@ -68,19 +75,16 @@ fun ChatScreen(
                 shadowElevation = 8.dp
             ) {
                 ChatInputBar(
-                    inputText = inputText,
-                    onInputChanged = { inputText = it },
-                    onSend = { 
-                        viewModel.sendMessage(inputText)
-                        inputText = ""
-                    },
-                    isLoading = isLoading
+                    inputText = uiState.inputText,
+                    onInputChanged = { viewModel.updateInput(it) },
+                    onSend = { viewModel.sendMessage() },
+                    isLoading = uiState.isLoading
                 )
             }
         },
         containerColor = MaterialTheme.colorScheme.background
     ) { padding ->
-        if (messages.isEmpty()) {
+        if (uiState.messages.isEmpty()) {
             Box(
                 modifier = modifier
                     .fillMaxSize()
@@ -116,7 +120,7 @@ fun ChatScreen(
                 contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 24.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                items(messages) { message ->
+                items(uiState.messages) { message ->
                     AnimatedVisibility(
                         visible = true,
                         enter = fadeIn() + slideInVertically(initialOffsetY = { it / 2 })
@@ -129,7 +133,7 @@ fun ChatScreen(
                         )
                     }
                 }
-                if (isLoading) {
+                if (uiState.isLoading) {
                     item {
                         Box(
                             modifier = Modifier
@@ -189,7 +193,7 @@ fun ChatBubble(
 
     Column(
         modifier = Modifier.fillMaxWidth().animateContentSize(),
-        horizontalAlignment = if (isUser) Alignment.Start else Alignment.End
+        horizontalAlignment = if (isUser) Alignment.End else Alignment.Start
     ) {
         Surface(
             shape = bubbleShape,
@@ -299,3 +303,10 @@ fun ChatInputBar(
         }
     }
 }
+"""
+}
+
+for path, content in files.items():
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, "w") as f:
+        f.write(content)

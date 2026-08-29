@@ -1,4 +1,18 @@
-package com.example.alfalah.ui.screens.chat
+import os
+
+def fix_store_screen():
+    path = "app/src/main/java/com/example/alfalah/ui/screens/store/StoreScreen.kt"
+    with open(path, "r") as f:
+        content = f.read()
+    
+    content = content.replace("firestoreRepository.getActiveProducts()", "firestoreRepository.getProducts()")
+    
+    with open(path, "w") as f:
+        f.write(content)
+
+def fix_chat_screen():
+    path = "app/src/main/java/com/example/alfalah/ui/screens/chat/ChatScreen.kt"
+    content = """package com.example.alfalah.ui.screens.chat
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
@@ -299,3 +313,9 @@ fun ChatInputBar(
         }
     }
 }
+"""
+    with open(path, "w") as f:
+        f.write(content)
+
+fix_store_screen()
+fix_chat_screen()

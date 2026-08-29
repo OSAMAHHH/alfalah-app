@@ -1,4 +1,6 @@
-package com.example.alfalah.ui.screens.admin
+import os
+
+content = """package com.example.alfalah.ui.screens.admin
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -580,3 +582,8 @@ fun ProblemDialog(
         shape = RoundedCornerShape(24.dp)
     )
 }
+"""
+
+with open("app/src/main/java/com/example/alfalah/ui/screens/admin/AdminDashboardScreen.kt", "w") as f:
+    f.write(content)
+
