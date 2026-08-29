@@ -15,9 +15,10 @@ import retrofit2.HttpException
 import retrofit2.Retrofit
 import retrofit2.converter.moshi.MoshiConverterFactory
 import java.io.IOException
-import java.net.SocketTimeoutException
+import java.net.SocketTimeoutException 
 import java.util.concurrent.TimeUnit
 import org.json.JSONObject
+import android.util.Log
 
 class AiRepository {
 
@@ -57,11 +58,18 @@ class AiRepository {
             val token = "Bearer ${tokenResult.token}"
 
             val request = AiChatRequest(message = message, conversationId = conversationId)
+            
+            val fullUrl = if (BASE_URL.endsWith("/")) "${BASE_URL}api/ai/chat" else "${BASE_URL}/api/ai/chat"
+            Log.d("AI_DEBUG", "BASE_URL: $BASE_URL")
+            Log.d("AI_DEBUG", "Preparing to call backend endpoint: api/ai/chat")
+            Log.d("AI_DEBUG", "Final URL: $fullUrl")
+            
             val response = apiService.sendMessage(token, request)
             
             Pair(response.answer, response.recommendedProducts)
 
         } catch (e: HttpException) {
+            Log.e("AI_DEBUG", "HttpException - Status Code: ${e.code()}, URL: ${e.response()?.raw()?.request?.url}")
             val errorMessage = when (e.code()) {
                 401, 403 -> "مشكلة في المصادقة. يرجى تسجيل الدخول مجدداً."
                 429 -> {
@@ -89,8 +97,12 @@ class AiRepository {
         } catch (e: SocketTimeoutException) {
             Pair("انتهى وقت الاتصال. يرجى التحقق من جودة الإنترنت لديك والمحاولة مجدداً.", emptyList())
         } catch (e: IOException) {
+            val fullUrl = if (BASE_URL.endsWith("/")) "${BASE_URL}api/ai/chat" else "${BASE_URL}/api/ai/chat"
+            Log.e("AI_DEBUG", "IOException: ${e.javaClass.name}, Message: ${e.message}, BASE_URL: $BASE_URL, Final URL: $fullUrl")
             Pair("عذراً، لا يمكنني الاتصال بالخادم حالياً. يرجى التأكد من اتصالك بالإنترنت.", emptyList())
         } catch (e: Exception) {
+            val fullUrl = if (BASE_URL.endsWith("/")) "${BASE_URL}api/ai/chat" else "${BASE_URL}/api/ai/chat"
+            Log.e("AI_DEBUG", "Exception: ${e.javaClass.name}, Message: ${e.message}, BASE_URL: $BASE_URL, Final URL: $fullUrl")
             Pair("عذراً، حدث خطأ غير متوقع: ${e.message}", emptyList())
         }
     }
