@@ -125,8 +125,8 @@ export const processChat = async (request: AiChatRequest): Promise<AiChatRespons
     سؤال المستخدم: "${request.message}"
   `;
 
-  // We use gemini-1.5-flash as it is the standard, fast, and supported model in the @google/genai SDK.
-  const finalResponse = await generateWithRetry(ai, 'gemini-1.5-flash', finalPrompt);
+  // We use gemini-3.6-flash as it is the standard, fast, and supported model in the @google/genai SDK.
+  const finalResponse = await generateWithRetry(ai, 'gemini-3.6-flash', finalPrompt);
   
   return {
     answer: finalResponse.text || "عذراً، حدث خطأ أثناء صياغة الإجابة.",

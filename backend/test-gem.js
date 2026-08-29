@@ -1,4 +1,4 @@
-require('dotenv').config({path: 'backend/.env'});
+require('dotenv').config();
 const { GoogleGenAI } = require('@google/genai');
 async function run() {
   try {

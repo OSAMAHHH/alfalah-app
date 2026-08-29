@@ -1,10 +1,10 @@
-require('dotenv').config({path: 'backend/.env'});
+require('dotenv').config();
 const { GoogleGenAI } = require('@google/genai');
 async function run() {
   try {
     const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
     const response = await ai.models.generateContent({
-      model: 'gemini-1.5-flash',
+      model: 'gemini-3.7-flash',
       contents: "hello",
     });
     console.log("Response:", response.text);
