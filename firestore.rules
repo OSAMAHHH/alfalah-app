@@ -8,37 +8,63 @@ service cloud.firestore {
     
     function isAdmin() {
       return isAuthenticated() && 
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
     }
 
     match /users/{userId} {
-      allow read: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
+      allow read, write: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
       
-      allow create: if isAuthenticated() && 
-                    request.auth.uid == userId && 
-                    request.resource.data.role == 'user';
-                    
-      allow update: if isAuthenticated() && (
-                      (request.auth.uid == userId && request.resource.data.role == resource.data.role) || 
-                      isAdmin()
-                    );
-                    
-      allow delete: if isAdmin();
+      // Personal services subcollections
+      match /favorites/{documentId} {
+        allow read, write: if isAuthenticated() && request.auth.uid == userId;
+      }
+      match /myCrops/{documentId} {
+        allow read, write: if isAuthenticated() && request.auth.uid == userId;
+      }
+      match /conversations/{documentId} {
+        allow read, write: if isAuthenticated() && request.auth.uid == userId;
+      }
+      match /irrigationPlans/{documentId} {
+        allow read, write: if isAuthenticated() && request.auth.uid == userId;
+      }
     }
 
-    match /products/{productId} {
-      allow read: if isAuthenticated() && (isAdmin() || resource.data.get('isActive', true) == true);
+    match /products/{documentId} {
+      allow read: if true;
       allow write: if isAdmin();
     }
 
-    match /crops/{cropId} {
-      allow read: if isAuthenticated() && (isAdmin() || resource.data.get('isActive', true) == true);
+    match /crops/{documentId} {
+      allow read: if true;
       allow write: if isAdmin();
     }
 
-    match /agricultural_problems/{problemId} {
-      allow read: if isAuthenticated() && (isAdmin() || resource.data.get('isActive', true) == true);
+    match /agricultural_problems/{documentId} {
+      allow read: if true;
       allow write: if isAdmin();
+    }
+    
+    // In case the collection is named 'problems' or 'diseases' or 'pests'
+    match /problems/{documentId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    match /diseases/{documentId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    match /pests/{documentId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    
+    match /irrigation/{documentId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
     }
   }
 }

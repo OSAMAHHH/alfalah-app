@@ -1,23 +1,9 @@
-package com.example.alfalah.data.repository
+import re
 
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
-import okhttp3.OkHttpClient
-import okhttp3.Request
-import org.json.JSONObject
+with open("app/src/main/java/com/example/alfalah/data/repository/WeatherRepository.kt", "r") as f:
+    text = f.read()
 
-data class WeatherInfo(
-    val temperature: Int,
-    val description: String,
-    val isDay: Boolean,
-    val code: Int,
-    val city: String
-)
-
-class WeatherRepository {
-    private val client = OkHttpClient()
-
-    
+new_weather_func = """
     suspend fun getCurrentWeather(): Result<WeatherInfo> = withContext(Dispatchers.IO) {
         try {
             var lat = 24.7136
@@ -60,18 +46,9 @@ class WeatherRepository {
             Result.success(WeatherInfo(25, "غير متوفر", true, 0, "الطقس"))
         }
     }
+"""
 
-    private fun getWeatherDescription(code: Int): String {
-        return when (code) {
-            0 -> "صافي"
-            1, 2, 3 -> "غائم جزئياً"
-            45, 48 -> "ضبابي"
-            51, 53, 55 -> "رذاذ"
-            61, 63, 65 -> "ممطر"
-            71, 73, 75 -> "ثلوج"
-            80, 81, 82 -> "زخات مطر"
-            95, 96, 99 -> "عاصفة رعدية"
-            else -> "غير معروف"
-        }
-    }
-}
+text = re.sub(r'suspend fun getCurrentWeather\(\): Result<WeatherInfo> = withContext\(Dispatchers\.IO\) \{[\s\S]*?private fun getWeatherDescription', new_weather_func + '\n    private fun getWeatherDescription', text)
+
+with open("app/src/main/java/com/example/alfalah/data/repository/WeatherRepository.kt", "w") as f:
+    f.write(text)

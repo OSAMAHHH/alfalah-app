@@ -19,17 +19,16 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import android.widget.Toast
 import androidx.compose.ui.platform.LocalContext
+import com.example.alfalah.data.repository.FirestoreRepository
+import kotlinx.coroutines.launch
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.result.PickVisualMediaRequest
-import androidx.compose.ui.platform.LocalContext
 import android.content.Intent
 import android.net.Uri
 import com.example.alfalah.data.model.AgriculturalProblem
 import com.example.alfalah.data.model.Crop
 import com.example.alfalah.data.model.Product
-import com.example.alfalah.data.repository.FirestoreRepository
-import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -351,136 +350,131 @@ fun StatusBadge(isActive: Boolean) {
 @Composable
 fun ProductDialog(product: Product, isAdding: Boolean, onDismiss: () -> Unit, onSave: (Product) -> Unit) {
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val firestoreRepo = remember { FirestoreRepository() }
     
     var name by remember { mutableStateOf(product.name) }
     var priceStr by remember { mutableStateOf(if (product.price == 0.0) "" else product.price.toString()) }
+    var description by remember { mutableStateOf(product.description) }
     var usage by remember { mutableStateOf(product.usage) }
-    var isActive by remember { mutableStateOf(product.isActive) }
+    var warnings by remember { mutableStateOf(product.warnings) }
+    var category by remember { mutableStateOf(product.category) }
     var currency by remember { mutableStateOf(product.currency.ifEmpty { "SAR" }) }
     var imageUrl by remember { mutableStateOf(product.imageUrl) }
+    var isUploading by remember { mutableStateOf(false) }
+    
     var expandedCurrency by remember { mutableStateOf(false) }
     
     val imagePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickVisualMedia(),
-        onResult = { uri: Uri? ->
+        onResult = { uri: android.net.Uri? ->
             if (uri != null) {
-                val flag = Intent.FLAG_GRANT_READ_URI_PERMISSION
-                context.contentResolver.takePersistableUriPermission(uri, flag)
-                imageUrl = uri.toString()
+                isUploading = true
+                scope.launch {
+                    val result = firestoreRepo.uploadImage(uri)
+                    isUploading = false
+                    if (result.isSuccess) {
+                        imageUrl = result.getOrNull() ?: ""
+                    }
+                }
             }
         }
     )
-
+    
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(if (isAdding) "إضافة منتج جديد" else "تعديل منتج", fontWeight = FontWeight.Bold) },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                OutlinedTextField(
-                    value = name, onValueChange = { name = it },
-                    label = { Text("اسم المنتج") },
-                    modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp)
-                )
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.verticalScroll(rememberScrollState())) {
+                OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("اسم المنتج") }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(value = description, onValueChange = { description = it }, label = { Text("الوصف") }, modifier = Modifier.fillMaxWidth())
                 
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedTextField(
-                        value = priceStr, onValueChange = { priceStr = it },
-                        label = { Text("السعر") },
-                        modifier = Modifier.weight(1f), shape = RoundedCornerShape(12.dp)
-                    )
-                    
-                    ExposedDropdownMenuBox(
-                        expanded = expandedCurrency,
-                        onExpandedChange = { expandedCurrency = !expandedCurrency },
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        OutlinedTextField(
-                            value = currency,
-                            onValueChange = {},
-                            readOnly = true,
-                            label = { Text("العملة") },
-                            modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable).fillMaxWidth(),
-                            shape = RoundedCornerShape(12.dp)
-                        )
+                    OutlinedTextField(value = priceStr, onValueChange = { priceStr = it }, label = { Text("السعر") }, modifier = Modifier.weight(1f))
+                    ExposedDropdownMenuBox(expanded = expandedCurrency, onExpandedChange = { expandedCurrency = it }, modifier = Modifier.weight(1f)) {
+                        OutlinedTextField(value = currency, onValueChange = {}, readOnly = true, label = { Text("العملة") }, trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expandedCurrency) }, modifier = Modifier.menuAnchor())
                         ExposedDropdownMenu(expanded = expandedCurrency, onDismissRequest = { expandedCurrency = false }) {
-                            listOf("SAR", "USD", "EUR", "EGP").forEach { c ->
-                                DropdownMenuItem(text = { Text(c) }, onClick = { currency = c; expandedCurrency = false })
+                            listOf("SAR", "USD", "EGP", "AED").forEach { cur ->
+                                DropdownMenuItem(text = { Text(cur) }, onClick = { currency = cur; expandedCurrency = false })
                             }
                         }
                     }
                 }
                 
-                OutlinedTextField(
-                    value = usage, onValueChange = { usage = it },
-                    label = { Text("الاستخدام") },
-                    modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp)
-                )
+                OutlinedTextField(value = category, onValueChange = { category = it }, label = { Text("التصنيف") }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(value = usage, onValueChange = { usage = it }, label = { Text("طريقة الاستخدام") }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(value = warnings, onValueChange = { warnings = it }, label = { Text("التحذيرات") }, modifier = Modifier.fillMaxWidth())
                 
                 Button(
                     onClick = { imagePickerLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = !isUploading
                 ) {
-                    Text(if (imageUrl.isEmpty()) "اختيار صورة للمنتج" else "تم اختيار الصورة (تغيير)")
+                    Text(if (isUploading) "جاري الرفع..." else "اختيار صورة")
                 }
-
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Switch(checked = isActive, onCheckedChange = { isActive = it })
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("نشط", style = MaterialTheme.typography.bodyMedium)
+                
+                if (imageUrl.isNotEmpty()) {
+                    Text("تم رفع الصورة بنجاح", color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.labelMedium)
                 }
             }
         },
         confirmButton = {
             Button(onClick = {
-                onSave(product.copy(name = name, price = priceStr.toDoubleOrNull() ?: 0.0, usage = usage, isActive = isActive, currency = currency, imageUrl = imageUrl))
-            }) { Text("حفظ") }
+                onSave(product.copy(
+                    name = name,
+                    price = priceStr.toDoubleOrNull() ?: 0.0,
+                    description = description,
+                    usage = usage,
+                    warnings = warnings,
+                    category = category,
+                    currency = currency,
+                    imageUrl = imageUrl
+                ))
+            }, enabled = !isUploading) { Text("حفظ") }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("إلغاء") } },
-        shape = RoundedCornerShape(24.dp)
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("إلغاء") }
+        }
     )
 }
-
-
 @Composable
 fun CropDialog(crop: Crop, isAdding: Boolean, onDismiss: () -> Unit, onSave: (Crop) -> Unit) {
     var name by remember { mutableStateOf(crop.name) }
-    var synonymsStr by remember { mutableStateOf(crop.synonyms.joinToString(", ")) }
-    var isActive by remember { mutableStateOf(crop.isActive) }
-
+    var description by remember { mutableStateOf(crop.description) }
+    var plantingSeason by remember { mutableStateOf(crop.plantingSeason) }
+    var soil by remember { mutableStateOf(crop.soil) }
+    var irrigation by remember { mutableStateOf(crop.irrigation) }
+    var fertilization by remember { mutableStateOf(crop.fertilization) }
+    var notes by remember { mutableStateOf(crop.notes) }
+    
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(if (isAdding) "إضافة محصول جديد" else "تعديل محصول", fontWeight = FontWeight.Bold) },
+        title = { Text(if (isAdding) "إضافة محصول جديد" else "تعديل المحصول") },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                OutlinedTextField(
-                    value = name, 
-                    onValueChange = { name = it }, 
-                    label = { Text("اسم المحصول") },
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp)
-                )
-                OutlinedTextField(
-                    value = synonymsStr, 
-                    onValueChange = { synonymsStr = it }, 
-                    label = { Text("مرادفات (مفصولة بفاصلة)") },
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp)
-                )
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Switch(checked = isActive, onCheckedChange = { isActive = it })
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("نشط", style = MaterialTheme.typography.bodyMedium)
-                }
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.verticalScroll(rememberScrollState())) {
+                OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("الاسم") }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(value = description, onValueChange = { description = it }, label = { Text("الوصف") }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(value = plantingSeason, onValueChange = { plantingSeason = it }, label = { Text("موسم الزراعة") }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(value = soil, onValueChange = { soil = it }, label = { Text("التربة المناسبة") }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(value = irrigation, onValueChange = { irrigation = it }, label = { Text("إرشادات الري") }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(value = fertilization, onValueChange = { fertilization = it }, label = { Text("إرشادات التسميد") }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(value = notes, onValueChange = { notes = it }, label = { Text("ملاحظات") }, modifier = Modifier.fillMaxWidth())
             }
         },
         confirmButton = {
-            Button(onClick = {
-                val synonyms = synonymsStr.split(",").map { it.trim() }.filter { it.isNotEmpty() }
-                onSave(crop.copy(name = name, synonyms = synonyms, isActive = isActive))
-            }) { Text("حفظ") }
+            Button(onClick = { onSave(crop.copy(
+                name = name, 
+                description = description,
+                plantingSeason = plantingSeason,
+                soil = soil,
+                irrigation = irrigation,
+                fertilization = fertilization,
+                notes = notes
+            )) }) { Text("حفظ") }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("إلغاء") } },
-        shape = RoundedCornerShape(24.dp)
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("إلغاء") }
+        }
     )
 }
 

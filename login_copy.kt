@@ -3,17 +3,6 @@ package com.example.alfalah.ui.screens.auth
 import androidx.compose.animation.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-
-import androidx.credentials.CredentialManager
-import androidx.credentials.GetCredentialRequest
-import androidx.credentials.exceptions.GetCredentialException
-import com.google.android.libraries.identity.googleid.GetSignInWithGoogleOption
-import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
-import com.google.firebase.auth.GoogleAuthProvider
-import androidx.compose.ui.res.vectorResource
-import com.example.alfalah.R
-import androidx.compose.ui.platform.LocalContext
-
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -53,7 +42,6 @@ fun LoginScreen(
     var isLoading by remember { mutableStateOf(false) }
     var errorMsg by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
-    val context = LocalContext.current
 
     // Background gradient: very subtle green touch fading to surface
     val backgroundBrush = Brush.verticalGradient(
@@ -279,65 +267,8 @@ fun LoginScreen(
                         }
                     }
                     
-                    
-                    // Google Login Button
-                    OutlinedButton(
-                        onClick = {
-                            isLoading = true
-                            errorMsg = null
-                            scope.launch {
-                                try {
-                                    val credentialManager = CredentialManager.create(context)
-                                    val googleIdOption = GetSignInWithGoogleOption.Builder(context.getString(com.example.alfalah.R.string.default_web_client_id)) // Fallback if R.string.default_web_client_id is unavailable
-                                        .build()
-                                    val request = GetCredentialRequest.Builder()
-                                        .addCredentialOption(googleIdOption)
-                                        .build()
-                                    
-                                    val result = credentialManager.getCredential(context = context, request = request)
-                                    val credential = result.credential
-                                    
-                                    if (credential is com.google.android.libraries.identity.googleid.GoogleIdTokenCredential) {
-                                        val idToken = credential.idToken
-                                        val loginResult = authRepository.googleSignIn(idToken)
-                                        if (loginResult.isSuccess) {
-                                            onLoginSuccess()
-                                        } else {
-                                            errorMsg = loginResult.exceptionOrNull()?.message ?: "فشل تسجيل الدخول بجوجل"
-                                        }
-                                    } else {
-                                        errorMsg = "نوع الاعتماد غير مدعوم"
-                                    }
-                                } catch (e: Exception) {
-                                    android.util.Log.e("LoginScreen", "Google Sign-In failed", e)
-                                    errorMsg = "تأكد من تفعيل Google Sign-In في Firebase وإضافة SHA-1"
-                                } finally {
-                                    isLoading = false
-                                }
-                            }
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(56.dp),
-                        shape = RoundedCornerShape(20.dp),
-                        enabled = !isLoading,
-                        colors = ButtonDefaults.outlinedButtonColors(containerColor = MaterialTheme.colorScheme.surface)
-                    ) {
-                        Icon(
-                            imageVector = androidx.compose.ui.graphics.vector.ImageVector.vectorResource(id = R.drawable.ic_google),
-                            contentDescription = "Google",
-                            tint = androidx.compose.ui.graphics.Color.Unspecified,
-                            modifier = Modifier.size(24.dp)
-                        )
-                        Spacer(modifier = Modifier.width(12.dp))
-                        Text(
-                            text = "المتابعة باستخدام Google",
-                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                    }
                     Spacer(modifier = Modifier.height(24.dp))
-
+                    
                     // Register Link
                     TextButton(onClick = onNavigateToRegister) {
                         Text(

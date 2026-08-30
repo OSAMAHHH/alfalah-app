@@ -1,0 +1,32 @@
+{
+  "crops": [
+    {
+      "id": "crop_tomato_001",
+      "name": "طماطم",
+      "synonyms": ["بندورة", "Tomatoes"],
+      "description": "محصول صيفي يحتاج إلى شمس مباشرة",
+      "plantingSeason": "الربيع والصيف",
+      "soil": "تربة جيدة التصريف",
+      "irrigation": "ري منتظم ومعتدل",
+      "fertilization": "سماد غني بالبوتاسيوم والفوسفور",
+      "notes": "تجنب رش الأوراق بالماء",
+      "isActive": true
+    }
+  ],
+  "agricultural_problems": [
+    {
+      "id": "prob_tomato_blight",
+      "cropId": "crop_tomato_001",
+      "name": "اللفحة المبكرة",
+      "synonyms": ["تبقع الأوراق", "Early Blight"],
+      "type": "disease",
+      "symptoms": ["بقع بنية على الأوراق السفلية", "اصفرار الأوراق"],
+      "causes": "فطر Alternaria solani",
+      "prevention": "تهوية جيدة، عدم زراعة الطماطم في نفس المكان لسنوات متتالية",
+      "treatment": "استخدام مبيد فطري نحاسي",
+      "recommendedProductIds": [],
+      "isActive": true
+    }
+  ],
+  "products": []
+}

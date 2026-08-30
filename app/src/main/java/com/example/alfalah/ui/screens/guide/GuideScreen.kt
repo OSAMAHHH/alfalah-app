@@ -1,10 +1,17 @@
 package com.example.alfalah.ui.screens.guide
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -25,8 +32,6 @@ fun GuideScreen(
 ) {
     var isLoading by remember { mutableStateOf(true) }
     var items by remember { mutableStateOf<List<Any>>(emptyList()) }
-    val scope = rememberCoroutineScope()
-
     val title = when (category) {
         "crops" -> "دليل المحاصيل"
         "pests" -> "دليل الآفات والأمراض"
@@ -46,7 +51,6 @@ fun GuideScreen(
                 items = res.getOrDefault(emptyList())
             }
             "irrigation" -> {
-                // Mock for irrigation until proper collection exists
                 items = emptyList()
             }
         }
@@ -95,15 +99,30 @@ fun GuideScreen(
 
 @Composable
 fun CropCard(crop: Crop) {
+    var expanded by remember { mutableStateOf(false) }
     Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+        modifier = Modifier.fillMaxWidth().clickable { expanded = !expanded },
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Text(crop.name, style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.primary)
-            if (crop.description.isNotEmpty()) {
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(crop.description, style = MaterialTheme.typography.bodyMedium)
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                Text(crop.name, style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
+                Icon(if (expanded) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+            }
+            AnimatedVisibility(
+                visible = expanded,
+                enter = expandVertically(animationSpec = tween(300)),
+                exit = shrinkVertically(animationSpec = tween(300))
+            ) {
+                Column(modifier = Modifier.padding(top = 12.dp)) {
+                    if (crop.description.isNotEmpty()) DetailSection("الوصف", crop.description)
+                    if (crop.plantingSeason.isNotEmpty()) DetailSection("موسم الزراعة", crop.plantingSeason)
+                    if (crop.soil.isNotEmpty()) DetailSection("التربة المناسبة", crop.soil)
+                    if (crop.irrigation.isNotEmpty()) DetailSection("إرشادات الري", crop.irrigation)
+                    if (crop.fertilization.isNotEmpty()) DetailSection("إرشادات التسميد", crop.fertilization)
+                    if (crop.notes.isNotEmpty()) DetailSection("ملاحظات هامة", crop.notes)
+                }
             }
         }
     }
@@ -111,22 +130,40 @@ fun CropCard(crop: Crop) {
 
 @Composable
 fun ProblemCard(problem: AgriculturalProblem) {
+    var expanded by remember { mutableStateOf(false) }
     Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer)
+        modifier = Modifier.fillMaxWidth().clickable { expanded = !expanded },
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Text(problem.name, style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.onErrorContainer)
-            Spacer(modifier = Modifier.height(8.dp))
-            Text("النوع: ${problem.type}", style = MaterialTheme.typography.labelMedium)
-            if (problem.symptoms.isNotEmpty()) {
-                Spacer(modifier = Modifier.height(8.dp))
-                Text("الأعراض: ${problem.symptoms.joinToString(", ")}", style = MaterialTheme.typography.bodyMedium)
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                Text(problem.name, style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.onErrorContainer, fontWeight = FontWeight.Bold)
+                Icon(if (expanded) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore, contentDescription = null, tint = MaterialTheme.colorScheme.onErrorContainer)
             }
-            if (problem.treatment.isNotEmpty()) {
-                Spacer(modifier = Modifier.height(8.dp))
-                Text("العلاج: ${problem.treatment}", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+            Text(problem.type, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.8f))
+            
+            AnimatedVisibility(
+                visible = expanded,
+                enter = expandVertically(animationSpec = tween(300)),
+                exit = shrinkVertically(animationSpec = tween(300))
+            ) {
+                Column(modifier = Modifier.padding(top = 12.dp)) {
+                    if (problem.symptoms.isNotEmpty()) DetailSection("الأعراض", problem.symptoms.joinToString("، "))
+                    if (problem.causes.isNotEmpty()) DetailSection("الأسباب", problem.causes)
+                    if (problem.prevention.isNotEmpty()) DetailSection("طرق الوقاية", problem.prevention)
+                    if (problem.treatment.isNotEmpty()) DetailSection("العلاج", problem.treatment)
+                }
             }
         }
+    }
+}
+
+@Composable
+fun DetailSection(title: String, content: String) {
+    Column(modifier = Modifier.padding(bottom = 12.dp)) {
+        Text(title, style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
+        Spacer(modifier = Modifier.height(4.dp))
+        Text(content, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface)
     }
 }

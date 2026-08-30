@@ -1,34 +1,9 @@
-package com.example.alfalah.ui.screens.chat
+import re
 
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
-import com.example.alfalah.data.model.ChatMessage
-import com.example.alfalah.data.model.Product
-import com.example.alfalah.data.repository.AiRepository
-import com.example.alfalah.data.repository.FirestoreRepository
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.launch
+with open("app/src/main/java/com/example/alfalah/ui/screens/chat/ChatViewModel.kt", "r") as f:
+    text = f.read()
 
-data class ChatMessageUi(
-    val id: String,
-    val text: String,
-    val isUser: Boolean,
-    val recommendedProducts: List<Product> = emptyList()
-)
-
-class ChatViewModel(
-    private val aiRepository: AiRepository = AiRepository(),
-    private val firestoreRepository: FirestoreRepository = FirestoreRepository()
-) : ViewModel() {
-
-    private val _messages = MutableStateFlow<List<ChatMessageUi>>(emptyList())
-    val messages: StateFlow<List<ChatMessageUi>> = _messages.asStateFlow()
-
-    private val _isLoading = MutableStateFlow(false)
-    val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
-
+new_send_message = """
     fun sendMessage(text: String) {
         if (text.isBlank()) return
         
@@ -42,20 +17,24 @@ class ChatViewModel(
         _isLoading.value = true
         
         viewModelScope.launch {
+            // Local Knowledge Base Search First
             val localResponse = searchLocalKnowledgeBase(text)
             if (localResponse != null) {
                 val aiMsg = ChatMessageUi(
                     id = (System.currentTimeMillis() + 1).toString(),
                     text = localResponse,
                     isUser = false,
-                    recommendedProducts = emptyList()
+                    recommendedProducts = emptyList() // Could enrich later
                 )
                 _messages.value = _messages.value + aiMsg
                 _isLoading.value = false
                 return@launch
             }
 
+            // Fallback to Gemini Backend
             val (responseText, productIds) = aiRepository.askAssistant(text)
+            
+            // Handle exhaustion gracefully
             var finalResponseText = responseText
             if (responseText.contains("تجاوزت حد الاستخدام") || responseText.contains("غير متاحة مؤقتاً") || responseText.contains("لا يمكنني الاتصال")) {
                 finalResponseText = "المساعد الذكي غير متاح مؤقتاً، لكن يمكنك الاستفادة من دليل المزارع الآن."
@@ -85,28 +64,43 @@ class ChatViewModel(
         val problems = firestoreRepository.getProblems().getOrNull() ?: emptyList()
         val crops = firestoreRepository.getCrops().getOrNull() ?: emptyList()
         
+        // Very basic semantic matching based on keywords
         val lowerQuery = query.lowercase()
         
+        // 1. Check for specific problems/diseases
         for (problem in problems) {
             val hasName = lowerQuery.contains(problem.name.lowercase())
             val hasSynonym = problem.synonyms.any { lowerQuery.contains(it.lowercase()) }
             if (hasName || hasSynonym) {
                 val cropName = crops.find { it.id == problem.cropId }?.name ?: "المحصول"
-                return "من خلال قاعدة المعرفة (دليل المزارع):\nالمشكلة: ${problem.name} في $cropName\nالأعراض: ${problem.symptoms.joinToString("، ")}\nالأسباب: ${problem.causes}\nالعلاج: ${problem.treatment}"
+                return "من خلال قاعدة المعرفة (دليل المزارع):\\n" +
+                       "المشكلة: ${problem.name} في $cropName\\n" +
+                       "الأعراض: ${problem.symptoms.joinToString("، ")}\\n" +
+                       "الأسباب: ${problem.causes}\\n" +
+                       "العلاج: ${problem.treatment}"
             }
         }
         
+        // 2. Check for general crop info
         for (crop in crops) {
             val hasName = lowerQuery.contains(crop.name.lowercase())
             val hasSynonym = crop.synonyms.any { lowerQuery.contains(it.lowercase()) }
             
             if (hasName || hasSynonym) {
+                // If they ask a general question about the crop
                 if (lowerQuery.contains("معلومات") || lowerQuery.contains("ما هو") || lowerQuery.contains("زراعة")) {
-                    return "من خلال قاعدة المعرفة (دليل المزارع):\nالمحصول: ${crop.name}\nالوصف: ${crop.description}"
+                    return "من خلال قاعدة المعرفة (دليل المزارع):\\n" +
+                           "المحصول: ${crop.name}\\n" +
+                           "الوصف: ${crop.description}\\n"
                 }
             }
         }
         
-        return null
+        return null // Not found locally, proceed to Gemini
     }
-}
+"""
+
+text = re.sub(r'fun sendMessage\(text: String\) \{[\s\S]*?\}\s*\}', new_send_message + '\n}', text)
+
+with open("app/src/main/java/com/example/alfalah/ui/screens/chat/ChatViewModel.kt", "w") as f:
+    f.write(text)

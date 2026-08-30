@@ -10,6 +10,7 @@ data class User(
     val role: String = "user" // "user" or "admin"
 )
 
+@JsonClass(generateAdapter = true)
 data class Product(
     @DocumentId val id: String = "",
     val name: String = "",
@@ -30,14 +31,21 @@ data class Product(
     val isActive: Boolean = true
 )
 
+@JsonClass(generateAdapter = true)
 data class Crop(
     @DocumentId val id: String = "",
     val name: String = "",
     val synonyms: List<String> = emptyList(),
     val description: String = "",
+    val plantingSeason: String = "",
+    val soil: String = "",
+    val irrigation: String = "",
+    val fertilization: String = "",
+    val notes: String = "",
     val isActive: Boolean = true
 )
 
+@JsonClass(generateAdapter = true)
 data class AgriculturalProblem(
     @DocumentId val id: String = "",
     val cropId: String = "",
@@ -71,4 +79,11 @@ data class AiChatRequest(
 data class AiChatResponse(
     val answer: String,
     val recommendedProducts: List<String> = emptyList()
+)
+
+@JsonClass(generateAdapter = true)
+data class ImportData(
+    val crops: List<Crop> = emptyList(),
+    @com.squareup.moshi.Json(name = "agricultural_problems") val agriculturalProblems: List<AgriculturalProblem> = emptyList(),
+    val products: List<Product> = emptyList()
 )

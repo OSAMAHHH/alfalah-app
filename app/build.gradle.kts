@@ -105,11 +105,13 @@ dependencies {
   implementation(libs.firebase.ai)
   // Uncomment to use Firestore:
   implementation(libs.firebase.firestore)
+    implementation("com.google.firebase:firebase-storage")
 
   // Uncomment ALL FOUR of the following dependencies together to use Firebase Auth and Google
   // Sign-In via Credential Manager:
   implementation(libs.firebase.auth)
   implementation(libs.androidx.credentials)
+    implementation("com.google.android.libraries.identity.googleid:googleid:1.1.0")
   implementation(libs.androidx.credentials.play.services)
   implementation(libs.googleid)
   implementation(libs.firebase.appcheck.recaptcha)

@@ -1,6 +1,7 @@
 package com.example.alfalah.data.repository
 
 import com.example.alfalah.data.model.User
+import com.google.firebase.auth.GoogleAuthProvider
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.tasks.await
@@ -49,6 +50,24 @@ class AuthRepository {
             val result = auth.createUserWithEmailAndPassword(email, password).await()
             val user = User(id = result.user!!.uid, name = name, email = email, role = "user")
             firestore.collection("users").document(user.id).set(user).await()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    
+    suspend fun googleSignIn(idToken: String): Result<Unit> {
+        return try {
+            val credential = GoogleAuthProvider.getCredential(idToken, null)
+            val result = auth.signInWithCredential(credential).await()
+            val user = result.user!!
+            // Check if user exists in Firestore
+            val doc = firestore.collection("users").document(user.uid).get().await()
+            if (!doc.exists()) {
+                val newUser = User(id = user.uid, name = user.displayName ?: "مزارع", email = user.email ?: "", role = "user")
+                firestore.collection("users").document(user.uid).set(newUser).await()
+            }
             Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e)

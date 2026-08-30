@@ -34,14 +34,9 @@ import com.example.alfalah.data.repository.WeatherInfo
 import androidx.compose.material.icons.filled.Cloud
 import androidx.compose.material.icons.filled.CloudQueue
 import androidx.compose.material.icons.filled.Thunderstorm
-import androidx.compose.material.icons.filled.WaterDrop
-import androidx.compose.material.icons.filled.WbSunny
 import androidx.compose.material.icons.filled.NightsStay
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-import okhttp3.OkHttpClient
-import okhttp3.Request
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -58,8 +53,10 @@ fun HomeScreen(
     val currentUser by authRepository.currentUser.collectAsState()
     val scope = rememberCoroutineScope()
     var weather by remember { mutableStateOf<WeatherInfo?>(null) }
-    LaunchedEffect(Unit) { weather = weatherRepository.getCurrentWeather().getOrNull() }
-    var debugResult by remember { mutableStateOf("") }
+    
+    LaunchedEffect(Unit) { 
+        weather = weatherRepository.getCurrentWeather().getOrNull() 
+    }
 
     Scaffold(containerColor = MaterialTheme.colorScheme.background) { padding ->
         Column(
@@ -86,18 +83,24 @@ fun HomeScreen(
                 ) {
                     Column {
                         Text("مرحباً بك،", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
-                        Text(currentUser?.name ?: "مزارعنا الكريم", style = MaterialTheme.typography.headlineMedium, color = MaterialTheme.colorScheme.onBackground)
+                        Text(currentUser?.name ?: "مزارعنا الكريم (زائر)", style = MaterialTheme.typography.headlineMedium, color = MaterialTheme.colorScheme.onBackground)
                     }
-                    IconButton(
-                        onClick = { authRepository.logout(); onLogout() },
-                        modifier = Modifier.background(MaterialTheme.colorScheme.surface, CircleShape).size(48.dp)
-                    ) {
-                        Icon(Icons.AutoMirrored.Outlined.Logout, contentDescription = "خروج", tint = MaterialTheme.colorScheme.primary)
+                    if (currentUser != null) {
+                        IconButton(
+                            onClick = { authRepository.logout(); onLogout() },
+                            modifier = Modifier.background(MaterialTheme.colorScheme.surface, CircleShape).size(48.dp)
+                        ) {
+                            Icon(Icons.AutoMirrored.Outlined.Logout, contentDescription = "خروج", tint = MaterialTheme.colorScheme.primary)
+                        }
+                    } else {
+                        Button(onClick = onLogout, shape = RoundedCornerShape(12.dp)) {
+                            Text("تسجيل الدخول")
+                        }
                     }
                 }
             }
 
-            // Weather Widget Placeholder
+            // Weather Widget
             ElevatedCard(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp),
                 shape = RoundedCornerShape(24.dp),
@@ -135,7 +138,6 @@ fun HomeScreen(
             Spacer(modifier = Modifier.height(16.dp))
             
             Column(modifier = Modifier.padding(horizontal = 24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                // Chat Feature Card
                 FeatureCard(
                     title = "اسأل الفلاح",
                     subtitle = "مساعدك الذكي لتشخيص الأمراض واقتراح الحلول الفورية",
@@ -144,7 +146,6 @@ fun HomeScreen(
                     contentColor = MaterialTheme.colorScheme.onPrimary,
                     onClick = onNavigateToChat
                 )
-                // Store Feature Card
                 FeatureCard(
                     title = "المتجر الزراعي",
                     subtitle = "تسوق أفضل الأسمدة والمبيدات الموثوقة لمحصولك",
@@ -181,31 +182,7 @@ fun HomeScreen(
                     }
                 }
             }
-
             Spacer(modifier = Modifier.height(48.dp))
-            
-            // Debug connection
-            Text(
-                text = "تشخيص الاتصال (فني)",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.outline,
-                modifier = Modifier.fillMaxWidth().clickable {
-                    scope.launch {
-                        debugResult = "جاري الفحص..."
-                        debugResult = withContext(Dispatchers.IO) {
-                            try {
-                                val response = OkHttpClient.Builder().build().newCall(Request.Builder().url("https://alfalah-app-production.up.railway.app/health").build()).execute()
-                                "A) Android -> /health: SUCCESS\nC) HTTP status: ${response.code}"
-                            } catch (e: Exception) { "FAILED: ${e.message}" }
-                        }
-                    }
-                },
-                textAlign = androidx.compose.ui.text.style.TextAlign.Center
-            )
-            AnimatedVisibility(visible = debugResult.isNotEmpty()) {
-                Text(text = debugResult, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(24.dp), color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-            Spacer(modifier = Modifier.height(24.dp))
         }
     }
 }
