@@ -40,6 +40,7 @@ object Routes {
     const val GUIDE = "guide/{category}"
     fun guide(category: String) = "guide/$category"
     const val ADMIN_DASHBOARD = "admin_dashboard"
+    val IMPORT_DB = "import_db"
     const val PRODUCT_DETAILS = "product_details/{productId}"
     fun productDetails(id: String) = "product_details/$id"
 }
@@ -205,8 +206,11 @@ fun AppNavigation(authRepository: AuthRepository = AuthRepository()) {
                 val category = backStackEntry.arguments?.getString("category") ?: ""
                 GuideScreen(category = category, onBack = { navController.popBackStack() })
             }
+            composable(Routes.IMPORT_DB) {
+                com.example.alfalah.ui.screens.admin.ImportDatabaseScreen(onBack = { navController.popBackStack() })
+            }
             composable(Routes.ADMIN_DASHBOARD) { 
-                AdminDashboardScreen(onBack = { navController.popBackStack() }) 
+                AdminDashboardScreen(onBack = { navController.popBackStack() }, onNavigateToImport = { navController.navigate(Routes.IMPORT_DB) }) 
             }
             composable(Routes.PRODUCT_DETAILS) { backStackEntry ->
                 val productId = backStackEntry.arguments?.getString("productId") ?: ""

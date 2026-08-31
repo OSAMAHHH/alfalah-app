@@ -1,0 +1,430 @@
+{
+  "crops": [
+    {
+      "id": "crop_tomato",
+      "name": "الطماطم",
+      "synonyms": [
+        "بندورة",
+        "Tomato",
+        "Solanum lycopersicum"
+      ],
+      "description": "نبات حولي من الفصيلة الباذنجانية، يزرع لثماره. يحتاج إلى إضاءة جيدة ودرجات حرارة معتدلة.",
+      "plantingSeason": "عروة صيفية (فبراير-مارس) وعروة نيلية/خريفية (أغسطس-سبتمبر).",
+      "soil": "تجود في الأراضي الصفراء الخفيفة والثقيلة جيدة الصرف والخالية من الأملاح.",
+      "irrigation": "ري منتظم، حساسة لنقص المياه أثناء التزهير وتكوين الثمار.",
+      "fertilization": "تحتاج إلى توازن في النيتروجين والفوسفور، وتتطلب كميات جيدة من البوتاسيوم خاصة في مرحلة الإثمار.",
+      "notes": "ينصح باتباع دورة زراعية ثلاثية لتجنب تراكم مسببات الأمراض في التربة.",
+      "isActive": true,
+      "_verificationStatus": "verified",
+      "_source": "FAO / Plantwise",
+      "_sourceUrl": "https://www.plantwise.org/"
+    },
+    {
+      "id": "crop_wheat",
+      "name": "القمح",
+      "synonyms": [
+        "حنطة",
+        "Wheat",
+        "Triticum"
+      ],
+      "description": "نبات عشبي حولي من الفصيلة النجيلية، وهو المحصول الغذائي الأول في العالم.",
+      "plantingSeason": "محصول شتوي، يزرع عادة من منتصف نوفمبر إلى منتصف ديسمبر.",
+      "soil": "يجود في الأراضي الطينية الخصبة جيدة الصرف، ويتحمل الملوحة الخفيفة.",
+      "irrigation": "يحتاج إلى 4-5 ريات في المتوسط، الريات الأهم هي رية المحاياة وأثناء طرد السنابل.",
+      "fertilization": "النيتروجين هو العنصر الأهم، يضاف على دفعات. يضاف الفوسفور قبل الزراعة.",
+      "notes": "الالتزام بميعاد الزراعة يقلل من الإصابة بالأمراض الفطرية والمن.",
+      "isActive": true,
+      "_verificationStatus": "verified",
+      "_source": "FAO / Plantwise",
+      "_sourceUrl": "https://www.plantwise.org/"
+    },
+    {
+      "id": "crop_potato",
+      "name": "البطاطس",
+      "synonyms": [
+        "بطاطا",
+        "Potato",
+        "Solanum tuberosum"
+      ],
+      "description": "محصول درني من الفصيلة الباذنجانية، يزرع تحت سطح التربة ويعتبر من المحاصيل الاستراتيجية.",
+      "plantingSeason": "عروة صيفية (يناير-فبراير)، عروة نيلية (سبتمبر-أكتوبر)، وعروة محيرة (نوفمبر).",
+      "soil": "التربة الرملية أو الصفراء الخفيفة جيدة الصرف لمنع تعفن الدرنات.",
+      "irrigation": "ري متقارب وبكميات معتدلة، الحساسية عالية لنقص المياه أثناء تكوين الدرنات.",
+      "fertilization": "تحتاج كميات كبيرة من البوتاسيوم لجودة الدرنات، مع توازن النيتروجين والفوسفور.",
+      "notes": "تجنب زراعتها في نفس الحقل بعد الطماطم أو الباذنجان لتجنب أمراض التربة.",
+      "isActive": true,
+      "_verificationStatus": "verified",
+      "_source": "FAO / Plantwise",
+      "_sourceUrl": "https://www.plantwise.org/"
+    },
+    {
+      "id": "crop_cucumber",
+      "name": "الخيار",
+      "synonyms": [
+        "Cucumber",
+        "Cucumis sativus"
+      ],
+      "description": "محصول خضر صيفي من الفصيلة القرعية، حساس للبرودة ويتميز بنموه السريع.",
+      "plantingSeason": "عروة صيفية مبكرة وعادية (فبراير-مايو)، وعروة خريفية (أغسطس-سبتمبر).",
+      "soil": "التربة الصفراء الخصبة الخفيفة، جيدة الصرف والتهوية، لا يتحمل الملوحة العالية.",
+      "irrigation": "يحتاج إلى رطوبة أرضية مستمرة دون تغديق (غمر مفرط) لتجنب أمراض الجذور.",
+      "fertilization": "نبات سريع النمو يحتاج لجرعات أسمدة متقاربة خصوصاً النيتروجين والبوتاسيوم.",
+      "notes": "التهوية الجيدة للنباتات ضرورية جداً لتقليل الإصابة بالبياض الزغبي والدقيقي.",
+      "isActive": true,
+      "_verificationStatus": "verified",
+      "_source": "FAO / Plantwise",
+      "_sourceUrl": "https://www.plantwise.org/"
+    },
+    {
+      "id": "crop_maize",
+      "name": "الذرة الشامية",
+      "synonyms": [
+        "ذرة",
+        "Corn",
+        "Maize",
+        "Zea mays"
+      ],
+      "description": "محصول نجيلي صيفي هام، يستخدم في تغذية الإنسان والحيوان والصناعة.",
+      "plantingSeason": "يزرع من منتصف أبريل حتى منتصف يونيو.",
+      "soil": "يجود في الأراضي الطينية والصفراء جيدة الصرف، ويتأثر بشدة بالملوحة.",
+      "irrigation": "حساس جداً للعطش وللغمر، يجب أن يكون الري بالحوال كل 12-15 يوماً.",
+      "fertilization": "محصول مجهد للتربة، يتطلب كميات عالية من النيتروجين.",
+      "notes": "الخف المبكر (ترك نبات واحد بالجورة) من أهم عوامل نجاح المحصول.",
+      "isActive": true,
+      "_verificationStatus": "verified",
+      "_source": "FAO / Plantwise",
+      "_sourceUrl": "https://www.plantwise.org/"
+    },
+    {
+      "id": "crop_eggplant",
+      "name": "الباذنجان",
+      "synonyms": [
+        "باذنجان",
+        "Eggplant",
+        "Solanum melongena"
+      ],
+      "description": "من محاصيل الخضر الصيفية الباذنجانية، يزرع لثماره ويتحمل الحرارة العالية.",
+      "plantingSeason": "عروة صيفية (فبراير-أبريل)، وعروة نيلية (يوليو-أغسطس).",
+      "soil": "يجود في جميع أنواع الأراضي جيدة الصرف، ويفضل الأراضي الطميية الخصبة.",
+      "irrigation": "الري المعتدل المنتظم، الإفراط يؤدي لتساقط الأزهار والعطش يصغر الثمار.",
+      "fertilization": "يحتاج إلى تسميد فوسفوري عند الزراعة وتسميد نيتروجيني وبوتاسي أثناء التزهير.",
+      "notes": "محصول معمر بطبيعته ويمكن أن يستمر في الإنتاج لفترة طويلة إذا تم الاعتناء به.",
+      "isActive": true,
+      "_verificationStatus": "verified",
+      "_source": "FAO / Plantwise",
+      "_sourceUrl": "https://www.plantwise.org/"
+    },
+    {
+      "id": "crop_onion",
+      "name": "البصل",
+      "synonyms": [
+        "بصل",
+        "Onion",
+        "Allium cepa"
+      ],
+      "description": "محصول بصلي شتوي من الفصيلة الزنبقية، يزرع للاستهلاك الطازج والتخزين والتصدير.",
+      "plantingSeason": "المشتل في سبتمبر وأكتوبر، والنقل للأرض المستديمة في نوفمبر وديسمبر.",
+      "soil": "الأراضي الصفراء والطينية الخفيفة، ويجب أن تكون خالية من الأملاح والأعشاب.",
+      "irrigation": "يحتاج لعناية بالري، ويمنع الري تماماً قبل الحصاد بـ 3-4 أسابيع لتجفيف الأبصال.",
+      "fertilization": "النيتروجين لنمو المجموع الخضري، والفوسفور لتكوين الجذور، وتجنب الإفراط في النيتروجين أواخر الموسم.",
+      "notes": "الاعتدال في التسميد النيتروجيني هام لزيادة قدرة الأبصال على التخزين.",
+      "isActive": true,
+      "_verificationStatus": "verified",
+      "_source": "FAO / Plantwise",
+      "_sourceUrl": "https://www.plantwise.org/"
+    },
+    {
+      "id": "crop_pepper",
+      "name": "الفلفل",
+      "synonyms": [
+        "فليفلة",
+        "Pepper",
+        "Capsicum"
+      ],
+      "description": "محصول خضر صيفي باذنجاني، يضم أصنافاً حلوة وحريفة.",
+      "plantingSeason": "عروة صيفية في مارس وأبريل، وعروة خريفية في أغسطس.",
+      "soil": "أراضي خصبة جيدة الصرف، حساس للملوحة والماء الزائد.",
+      "irrigation": "ري منتظم، الحفاظ على رطوبة التربة يمنع مرض عفن الطرف الزهري.",
+      "fertilization": "يحتاج لبوتاسيوم عالي الجودة وكالسيوم لضمان صلابة الثمار.",
+      "notes": "حساس جداً للصقيع وانخفاض درجات الحرارة.",
+      "isActive": true,
+      "_verificationStatus": "verified",
+      "_source": "FAO / Plantwise",
+      "_sourceUrl": "https://www.plantwise.org/"
+    },
+    {
+      "id": "crop_watermelon",
+      "name": "البطيخ",
+      "synonyms": [
+        "جبس",
+        "حبحب",
+        "رقي",
+        "Watermelon",
+        "Citrullus lanatus"
+      ],
+      "description": "محصول صيفي زاحف من الفصيلة القرعية، يتميز بثماره الكبيرة الغنية بالماء.",
+      "plantingSeason": "مارس وأبريل للزراعة المكشوفة.",
+      "soil": "يفضل الأراضي الرملية والصفراء الخفيفة العميقة والجيدة الصرف.",
+      "irrigation": "ري غزير ومتباعد في البداية، ويقلل الري عند نضج الثمار لزيادة نسبة السكر.",
+      "fertilization": "التسميد العضوي ضروري جداً في الأراضي الرملية، مع التركيز على البوتاسيوم في مرحلة عقد الثمار.",
+      "notes": "تقليم وتوجيه العروش يساهم في تغطية الثمار لحمايتها من لسعة الشمس.",
+      "isActive": true,
+      "_verificationStatus": "verified",
+      "_source": "FAO / Plantwise",
+      "_sourceUrl": "https://www.plantwise.org/"
+    },
+    {
+      "id": "crop_carrot",
+      "name": "الجزر",
+      "synonyms": [
+        "جزر",
+        "Carrot",
+        "Daucus carota"
+      ],
+      "description": "محصول جذري شتوي يتبع الفصيلة الخيمية، يزرع لقيمته الغذائية العالية.",
+      "plantingSeason": "من منتصف أغسطس حتى نوفمبر.",
+      "soil": "الأراضي الرملية أو الصفراء الخفيفة الخالية من الحصى والمدر لتكوين جذور مستقيمة.",
+      "irrigation": "ري منتظم وخفيف لمنع تشقق الجذور.",
+      "fertilization": "يجب تجنب التسميد العضوي غير المتحلل تماماً لأنه يؤدي إلى تشعب الجذور.",
+      "notes": "عملية الخف ضرورية جداً في مراحل النمو الأولى لضمان حجم جيد للجذر.",
+      "isActive": true,
+      "_verificationStatus": "verified",
+      "_source": "FAO / Plantwise",
+      "_sourceUrl": "https://www.plantwise.org/"
+    }
+  ],
+  "agricultural_problems": [
+    {
+      "id": "problem_tomato_early_blight",
+      "cropId": "crop_tomato",
+      "name": "اللفحة المبكرة (تبقع الأوراق)",
+      "synonyms": [
+        "Early Blight",
+        "Alternaria solani"
+      ],
+      "type": "disease",
+      "symptoms": [
+        "بقع بنية داكنة بحلقات دائرية متداخلة على الأوراق السفلية أولاً.",
+        "اصفرار الأوراق المصابة وسقوطها المبكر.",
+        "بقع سوداء غائرة على الثمار عند منطقة العنق."
+      ],
+      "causes": "فطر Alternaria solani، ينشط مع درجات الحرارة المعتدلة إلى المرتفعة والرطوبة العالية أو الندى.",
+      "prevention": "1- دورة زراعية ثلاثية. 2- التخلص من بقايا المحصول السابق. 3- زراعة أصناف مقاومة. 4- تجنب الري بالرش لتقليل بلل الأوراق.",
+      "treatment": "الرش بمبيدات فطرية وقائية (مثل المركبات النحاسية) عند بداية ظهور الأعراض، ومبيدات جهازية عند اشتداد الإصابة بناءً على توصيات المرشد الزراعي.",
+      "recommendedProductIds": [],
+      "isActive": true,
+      "_verificationStatus": "verified",
+      "_source": "FAO / CABI Plantwise Knowledge Bank",
+      "_sourceUrl": "https://www.plantwise.org/KnowledgeBank/"
+    },
+    {
+      "id": "problem_tomato_tuta_absoluta",
+      "cropId": "crop_tomato",
+      "name": "صانعة أنفاق الطماطم (حشرة التوتا أبسولوتا)",
+      "synonyms": [
+        "Tuta absoluta",
+        "Tomato Leafminer"
+      ],
+      "type": "pest",
+      "symptoms": [
+        "وجود أنفاق ومسارات بيضاء غير منتظمة على الأوراق تتحول للون البني.",
+        "ثقوب في الثمار مع وجود فضلات الحشرة السوداء.",
+        "جفاف وضعف عام للنبات."
+      ],
+      "causes": "يرقات فراشة Tuta absoluta.",
+      "prevention": "1- استخدام المصائد الفرمونية المائية للمراقبة والاصطياد. 2- إغلاق الصوب بشباك مانعة للحشرات. 3- إزالة الأوراق المصابة وحرقها.",
+      "treatment": "استخدام مبيدات حيوية مثل (Bacillus thuringiensis) في الأعمار اليرقية الأولى، وفي حالة تفشي الإصابة تستخدم مبيدات متخصصة مع مراعاة تبادل المواد الفعالة لمنع اكتساب المناعة.",
+      "recommendedProductIds": [],
+      "isActive": true,
+      "_verificationStatus": "verified",
+      "_source": "FAO / CABI Plantwise Knowledge Bank",
+      "_sourceUrl": "https://www.plantwise.org/KnowledgeBank/"
+    },
+    {
+      "id": "problem_tomato_blossom_end_rot",
+      "cropId": "crop_tomato",
+      "name": "عفن الطرف الزهري",
+      "synonyms": [
+        "Blossom End Rot",
+        "نقص الكالسيوم"
+      ],
+      "type": "nutrient_deficiency",
+      "symptoms": [
+        "بقعة مائية غائرة في الطرف السفلي للثمرة (الطرف الزهري).",
+        "تتحول البقعة إلى اللون الأسود وتصبح صلبة أو جلدية الملمس."
+      ],
+      "causes": "خلل فسيولوجي ناتج عن نقص الكالسيوم الموضعي في أنسجة الثمرة في الطرف الزهري، وليس بالضرورة نقصه في التربة. ينتج عن ضعف انتقال الكالسيوم في أوعية الخشب بسبب الإجهاد المائي (تذبذب الري بين العطش والغمر)، الملوحة العالية في التربة، أو تلف المجموع الجذري.",
+      "prevention": "1- تنظيم فترات الري والحفاظ على رطوبة تربة متجانسة. 2- تجنب الإفراط في التسميد النيتروجيني أو البوتاسي لأنهما يتنافسان مع الكالسيوم. 3- حماية الجذور أثناء العزيق.",
+      "treatment": "رش ورقي بمركبات الكالسيوم المخلبي سريعة الامتصاص، مع ضبط جدول الري فوراً.",
+      "recommendedProductIds": [],
+      "isActive": true,
+      "_verificationStatus": "verified_after_correction",
+      "_source": "CABI / University Extension Services (e.g., UF/IFAS, Penn State) - Physiological Disorders of Tomato",
+      "_sourceUrl": "https://extension.psu.edu/blossom-end-rot-on-tomatoes"
+    },
+    {
+      "id": "problem_wheat_yellow_rust",
+      "cropId": "crop_wheat",
+      "name": "الصدأ الأصفر (الصدأ المخطط)",
+      "synonyms": [
+        "Yellow Rust",
+        "Stripe Rust",
+        "Puccinia striiformis"
+      ],
+      "type": "disease",
+      "symptoms": [
+        "بثرات صفراء برتقالية اللون مرتبة في خطوط طولية متوازية على الأوراق.",
+        "اصفرار الأوراق وتجفافها في حالات الإصابة الشديدة.",
+        "ضعف امتلاء الحبوب ونقص شديد في المحصول."
+      ],
+      "causes": "فطر Puccinia striiformis، ينشط في درجات الحرارة الباردة (10-15 مئوية) والرطوبة العالية.",
+      "prevention": "1- زراعة الأصناف المعتمدة والمقاومة للمرض. 2- الالتزام بميعاد الزراعة المناسب لتجنب الظروف البيئية الملائمة للمرض. 3- المراقبة المستمرة للحقل من منتصف فبراير.",
+      "treatment": "الرش الفوري بالمبيدات الفطرية الجهازية الموصى بها بمجرد ظهور البثرات الأولى، لضمان حماية ورقة العلم (الورقة العلوية).",
+      "recommendedProductIds": [],
+      "isActive": true,
+      "_verificationStatus": "verified",
+      "_source": "FAO / CABI Plantwise Knowledge Bank",
+      "_sourceUrl": "https://www.plantwise.org/KnowledgeBank/"
+    },
+    {
+      "id": "problem_potato_late_blight",
+      "cropId": "crop_potato",
+      "name": "اللفحة المتأخرة في البطاطس",
+      "synonyms": [
+        "Late Blight",
+        "Phytophthora infestans"
+      ],
+      "type": "disease",
+      "symptoms": [
+        "بقع مائية غير منتظمة على حواف الأوراق تتحول للبني المسود.",
+        "ظهور نمو زغبي أبيض على السطح السفلي للأوراق المصابة في الصباح الباكر أو عند ارتفاع الرطوبة.",
+        "تعفن الثمار (الدرنات) في التربة وانبعاث رائحة كريهة من الحقل."
+      ],
+      "causes": "شبه فطر Phytophthora infestans، ينتشر بسرعة في الجو البارد (15-20 مئوية) مع الرطوبة العالية أو الضباب.",
+      "prevention": "1- استخدام تقاوي سليمة ومعتمدة. 2- التخلص من نباتات البطاطس المتخلفة من الموسم السابق. 3- الاعتدال في الري والتسميد النيتروجيني. 4- رش وقائي للمركبات النحاسية قبل توقع الضباب.",
+      "treatment": "تطبيق مبيدات فطرية جهازية متخصصة فوراً عند رؤية أول بقعة، وتكرار الرش حسب شدة الإصابة والظروف الجوية.",
+      "recommendedProductIds": [],
+      "isActive": true,
+      "_verificationStatus": "verified",
+      "_source": "FAO / CABI Plantwise Knowledge Bank",
+      "_sourceUrl": "https://www.plantwise.org/KnowledgeBank/"
+    },
+    {
+      "id": "problem_cucumber_powdery_mildew",
+      "cropId": "crop_cucumber",
+      "name": "البياض الدقيقي في الخيار",
+      "synonyms": [
+        "Powdery Mildew",
+        "Podosphaera xanthii"
+      ],
+      "type": "disease",
+      "symptoms": [
+        "بقع بيضاء دقيقية المظهر على السطح العلوي والسفلي للأوراق.",
+        "تتسع البقع لتغطي الورقة كاملة، ثم تتحول الورقة للون الأصفر وتجف.",
+        "ضعف عام في النبات وتأخر في نمو الثمار."
+      ],
+      "causes": "فطريات متخصصة، تنشط في الجو الدافئ الجاف نسبياً أو مع تذبذب درجات الحرارة والرطوبة.",
+      "prevention": "1- تحسين التهوية بين النباتات لتقليل الرطوبة حول الأوراق. 2- تجنب الزراعة الكثيفة. 3- التسميد المتوازن وتجنب الإفراط في النيتروجين.",
+      "treatment": "التعفير بالكبريت الميكروني (في أوقات اعتدال الحرارة لتجنب احتراق الأوراق)، أو الرش بمبيدات فطرية متخصصة للبياض الدقيقي بالتبادل.",
+      "recommendedProductIds": [],
+      "isActive": true,
+      "_verificationStatus": "verified",
+      "_source": "FAO / CABI Plantwise Knowledge Bank",
+      "_sourceUrl": "https://www.plantwise.org/KnowledgeBank/"
+    },
+    {
+      "id": "problem_maize_fall_armyworm",
+      "cropId": "crop_maize",
+      "name": "دودة الحشد الخريفية",
+      "synonyms": [
+        "Fall Armyworm",
+        "FAW",
+        "Spodoptera frugiperda"
+      ],
+      "type": "pest",
+      "symptoms": [
+        "أكل وتخريم في أوراق الذرة يظهر كشريط ممزق.",
+        "وجود كميات كبيرة من فضلات الحشرة (تشبه نشارة الخشب) داخل بلعوم النبات (القلب).",
+        "تدمير القمة النامية مما يؤدي لموت النبات في المراحل المبكرة."
+      ],
+      "causes": "يرقة حشرة Spodoptera frugiperda، آفة شديدة الشراهة وسريعة التكاثر والانتشار.",
+      "prevention": "1- الزراعة المبكرة والموحدة في المنطقة لتجنب الأجيال المتأخرة الشرسة. 2- حرث التربة جيداً لتعريض العذارى للشمس والأعداء الحيوية. 3- إزالة الحشائش النجيلية حول الحقل.",
+      "treatment": "المكافحة الكيميائية موجهة إلى 'بلعوم' النبات مباشرة. يفضل استخدام مبيدات ذات فعل معدي وجهازي في المراحل اليرقية الأولى (العمر الأول والثاني) قبل أن تحتمي اليرقة داخل النبات.",
+      "recommendedProductIds": [],
+      "isActive": true,
+      "_verificationStatus": "verified",
+      "_source": "FAO / CABI Plantwise Knowledge Bank",
+      "_sourceUrl": "https://www.plantwise.org/KnowledgeBank/"
+    },
+    {
+      "id": "problem_eggplant_spider_mite",
+      "cropId": "crop_eggplant",
+      "name": "العنكبوت الأحمر (الأكاروس)",
+      "synonyms": [
+        "Red Spider Mite",
+        "Tetranychus urticae"
+      ],
+      "type": "pest",
+      "symptoms": [
+        "بقع صفراء باهتة صغيرة على السطح العلوي للأوراق.",
+        "جفاف الأوراق وسقوطها.",
+        "وجود نسيج عنكبوتي دقيق على السطح السفلي للأوراق أو بين الفروع في الإصابات الشديدة."
+      ],
+      "causes": "حيوان مفصلي دقيق جداً يمتص عصارة النبات، ينشط بشدة في الطقس الحار والجاف.",
+      "prevention": "1- إزالة الحشائش التي تعتبر عوائل بديلة. 2- الحفاظ على ري منتظم (النباتات العطشى أكثر عرضة للإصابة). 3- غسيل النباتات بالماء يقلل من كثافة الأكاروس.",
+      "treatment": "استخدام مبيدات أكاروسية متخصصة (العناكب لا تتأثر بالمبيدات الحشرية العادية)، مع التأكد من تغطية السطح السفلي للأوراق بالرش.",
+      "recommendedProductIds": [],
+      "isActive": true,
+      "_verificationStatus": "verified",
+      "_source": "FAO / CABI Plantwise Knowledge Bank",
+      "_sourceUrl": "https://www.plantwise.org/KnowledgeBank/"
+    },
+    {
+      "id": "problem_onion_purple_blotch",
+      "cropId": "crop_onion",
+      "name": "اللطعة الأرجوانية",
+      "synonyms": [
+        "Purple Blotch",
+        "Alternaria porri"
+      ],
+      "type": "disease",
+      "symptoms": [
+        "بقع بيضاء صغيرة غائرة على الأوراق تتحول لمركز أرجواني محاط بهالة صفراء.",
+        "انكسار الأوراق المصابة عند منطقة البقعة.",
+        "إصابة العنق يؤدي إلى تعفن الأبصال أثناء التخزين."
+      ],
+      "causes": "فطر Alternaria porri، ينشط في وجود الرطوبة العالية ودرجات الحرارة المعتدلة.",
+      "prevention": "1- زراعة تقاوي وشتلات خالية من الأمراض. 2- دورة زراعية لثلاث سنوات. 3- تجنب الري الزائد. 4- رش وقائي للمركبات النحاسية.",
+      "treatment": "الرش بمبيدات فطرية متخصصة جهازية وتلامسية فور ظهور الأعراض، ويفضل إضافة مادة ناشرة للمبيد نظراً للطبيعة الشمعية لأوراق البصل.",
+      "recommendedProductIds": [],
+      "isActive": true,
+      "_verificationStatus": "verified",
+      "_source": "FAO / CABI Plantwise Knowledge Bank",
+      "_sourceUrl": "https://www.plantwise.org/KnowledgeBank/"
+    },
+    {
+      "id": "problem_pepper_aphids",
+      "cropId": "crop_pepper",
+      "name": "حشرة المن",
+      "synonyms": [
+        "Aphids",
+        "قمل النبات"
+      ],
+      "type": "pest",
+      "symptoms": [
+        "تجمع حشرات صغيرة (خضراء أو سوداء) على القمم النامية والأسطح السفلية للأوراق.",
+        "تجعد الأوراق وتوقف النمو.",
+        "إفراز ندوة عسلية لزجة ينمو عليها فطر العفن الأسود، مما يعيق البناء الضوئي."
+      ],
+      "causes": "حشرات ماصة للعصارة تتكاثر بسرعة هائلة، وتعتبر الناقل الأول للأمراض الفيروسية في الفلفل.",
+      "prevention": "1- التخلص من الحشائش. 2- وضع مصائد لاصقة صفراء للمراقبة. 3- استخدام شبك مانع للحشرات في الصوب. 4- تشجيع الأعداء الحيوية مثل حشرة أبو العيد (الدعسوقة).",
+      "treatment": "الرش بالصابون الزراعي أو الزيوت المعدنية الصيفية في بداية الإصابة، أو مبيدات حشرية جهازية متخصصة للثاقبة الماصة مع تجنب الرش وقت إزهار النبات حفاظاً على النحل.",
+      "recommendedProductIds": [],
+      "isActive": true,
+      "_verificationStatus": "verified",
+      "_source": "FAO / CABI Plantwise Knowledge Bank",
+      "_sourceUrl": "https://www.plantwise.org/KnowledgeBank/"
+    }
+  ],
+  "products": []
+}

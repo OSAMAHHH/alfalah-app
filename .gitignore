@@ -19,3 +19,6 @@ debug.keystore
 backend/.env
 backend/serviceAccountKey.json
 *.jks
+serviceAccountKey.json
+.env
+*.pem

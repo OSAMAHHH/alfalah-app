@@ -1,43 +1,68 @@
 const fs = require('fs');
 
-// We use firebase-admin to bypass security rules since this is an admin script.
-// To run this, you need a serviceAccountKey.json from Firebase Console -> Project Settings -> Service Accounts.
-// For the sake of the dry-run, we will mock the firebase-admin if the key is not present.
+const args = process.argv.slice(2);
+if (args.length < 1) {
+    console.log("Usage: node import_data.js <path_to_json> [--import]");
+    console.log("  Default is DRY RUN.");
+    console.log("  Use --import flag to actually write data.");
+    process.exit(1);
+}
+
+const filePath = args[0];
+const isImport = args.includes('--import');
+const isDryRun = !isImport;
 
 let admin;
 let db;
+let hasRealCredentials = false;
 
 try {
     admin = require('firebase-admin');
-    const serviceAccount = require('./serviceAccountKey.json');
-    admin.initializeApp({
-        credential: admin.credential.cert(serviceAccount)
-    });
+    
+    // Check for GOOGLE_APPLICATION_CREDENTIALS environment variable
+    if (process.env.GOOGLE_APPLICATION_CREDENTIALS && fs.existsSync(process.env.GOOGLE_APPLICATION_CREDENTIALS)) {
+        admin.initializeApp();
+        hasRealCredentials = true;
+    } 
+    // Fallback to local serviceAccountKey.json
+    else if (fs.existsSync('./serviceAccountKey.json')) {
+        const serviceAccount = require('./serviceAccountKey.json');
+        admin.initializeApp({
+            credential: admin.credential.cert(serviceAccount)
+        });
+        hasRealCredentials = true;
+    } else {
+        throw new Error("No credentials found");
+    }
     db = admin.firestore();
 } catch (e) {
-    console.log("⚠️ Warning: serviceAccountKey.json not found or invalid. Running in MOCK mode for testing.");
-    // Mock db for testing
-    db = {
-        collection: (name) => ({
-            doc: (id) => ({
-                set: async (data, options) => {
-                    console.log(`[MOCK FIRESTORE] Wrote to ${name}/${id}`);
-                }
-            }),
-            get: async () => ({ docs: [] })
-        }),
-        batch: () => ({
-            set: (docRef, data, options) => {
-                docRef.set(data, options);
-            },
-            commit: async () => {
-                console.log("[MOCK FIRESTORE] Batch committed.");
-            }
-        })
-    };
+    if (isImport) {
+        console.error("\n\u274C REAL FIRESTORE IMPORT REQUIRES FIREBASE ADMIN CREDENTIALS");
+        console.error("Please set GOOGLE_APPLICATION_CREDENTIALS environment variable or provide scripts/serviceAccountKey.json");
+        process.exit(1);
+    } else {
+        console.log("\u26A0\uFE0F Warning: Firebase credentials not found. Running DRY RUN with MOCK Firestore for existing data validation.");
+        // Mock db for testing existing validation locally without credentials
+        db = {
+            collection: (name) => ({
+                get: async () => ({ docs: [] })
+            })
+        };
+    }
 }
 
-async function runImport(filePath, isDryRun = true) {
+// Helper to remove internal fields starting with '_'
+function sanitizeData(obj) {
+    const sanitized = {};
+    for (const key in obj) {
+        if (!key.startsWith('_')) {
+            sanitized[key] = obj[key];
+        }
+    }
+    return sanitized;
+}
+
+async function runImport(filePath) {
     console.log(`\n=== Starting ${isDryRun ? 'DRY RUN' : 'IMPORT'} ===`);
     
     if (!fs.existsSync(filePath)) {
@@ -135,10 +160,10 @@ async function runImport(filePath, isDryRun = true) {
     });
 
     if (hasErrors) {
-        console.error("\n❌ Validation Failed. Please fix the errors in your JSON file and try again.");
+        console.error("\n\u274C Validation Failed. Please fix the errors in your JSON file and try again.");
         process.exit(1);
     } else {
-        console.log("✅ Validation Passed! Schema and relationships are valid.");
+        console.log("\u2705 Validation Passed! Schema and relationships are valid.");
     }
 
     if (isDryRun) {
@@ -151,34 +176,23 @@ async function runImport(filePath, isDryRun = true) {
         const batch = db.batch();
         
         // Use Set with merge: true to avoid overwriting existing data blindly or creating duplicates.
-        // This will update if exists, or create if not.
+        // Sanitize data to remove internal fields starting with '_'
         crops.forEach(c => {
-            batch.set(db.collection('crops').doc(c.id), c, { merge: true });
+            batch.set(db.collection('crops').doc(c.id), sanitizeData(c), { merge: true });
         });
         problems.forEach(p => {
-            batch.set(db.collection('agricultural_problems').doc(p.id), p, { merge: true });
+            batch.set(db.collection('agricultural_problems').doc(p.id), sanitizeData(p), { merge: true });
         });
         products.forEach(p => {
-            batch.set(db.collection('products').doc(p.id), p, { merge: true });
+            batch.set(db.collection('products').doc(p.id), sanitizeData(p), { merge: true });
         });
 
         await batch.commit();
-        console.log("✅ IMPORT SUCCESSFUL. All data has been written to Firestore.");
+        console.log("\u2705 IMPORT SUCCESSFUL. All data has been written to Firestore.");
     } catch (e) {
-        console.error("❌ Failed to write to Firestore:", e);
+        console.error("\u274C Failed to write to Firestore:", e);
         process.exit(1);
     }
 }
 
-const args = process.argv.slice(2);
-if (args.length < 1) {
-    console.log("Usage: node import_data.js <path_to_json> [--import]");
-    console.log("  Default is DRY RUN.");
-    console.log("  Use --import flag to actually write data.");
-    process.exit(1);
-}
-
-const filePath = args[0];
-const isDryRun = !args.includes('--import');
-
-runImport(filePath, isDryRun);
+runImport(filePath);

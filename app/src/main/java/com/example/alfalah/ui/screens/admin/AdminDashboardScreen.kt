@@ -33,8 +33,8 @@ import com.example.alfalah.data.model.Product
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AdminDashboardScreen(
-    
     onBack: () -> Unit,
+    onNavigateToImport: () -> Unit = {},
     modifier: Modifier = Modifier,
     firestoreRepository: FirestoreRepository = remember { FirestoreRepository() }
 ) {
@@ -74,31 +74,24 @@ fun AdminDashboardScreen(
         topBar = {
             Column {
                 TopAppBar(
-                    title = { Text("لوحة تحكم المشرف", fontWeight = FontWeight.Bold) },
+                    title = { Text("لوحة تحكم المشرف") },
                     navigationIcon = {
                         IconButton(onClick = onBack) {
                             Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = "رجوع")
                         }
                     },
-                    colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = MaterialTheme.colorScheme.background
-                    )
+                    actions = {
+                        IconButton(onClick = onNavigateToImport) {
+                            Icon(Icons.Outlined.Add, contentDescription = "استيراد")
+                        }
+                    }
                 )
-                TabRow(
-                    selectedTabIndex = selectedTab,
-                    containerColor = MaterialTheme.colorScheme.background,
-                    contentColor = MaterialTheme.colorScheme.primary
-                ) {
+                TabRow(selectedTabIndex = selectedTab) {
                     tabs.forEachIndexed { index, title ->
                         Tab(
                             selected = selectedTab == index,
                             onClick = { selectedTab = index },
-                            text = { 
-                                Text(
-                                    title, 
-                                    fontWeight = if (selectedTab == index) FontWeight.Bold else FontWeight.Normal
-                                ) 
-                            }
+                            text = { Text(title) }
                         )
                     }
                 }
