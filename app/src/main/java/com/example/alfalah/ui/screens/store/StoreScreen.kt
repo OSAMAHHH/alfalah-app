@@ -112,7 +112,7 @@ fun ProductCard(product: Product, onClick: () -> Unit) {
                 Text(product.description, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.height(32.dp))
                 Spacer(modifier = Modifier.height(16.dp))
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                    Text("${product.price} ${product.currency}", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
+                    Text("${product.price} ${if (product.currency.isEmpty() || product.currency == "$" || product.currency == "SAR") "ر.ي" else product.currency}", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
                     Box(modifier = Modifier.size(36.dp).background(MaterialTheme.colorScheme.primary, CircleShape), contentAlignment = Alignment.Center) {
                         Icon(Icons.Filled.AddShoppingCart, contentDescription = "أضف", modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.onPrimary)
                     }

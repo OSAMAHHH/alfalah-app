@@ -16,31 +16,9 @@ data class WeatherInfo(
 
 class WeatherRepository {
     private val client = OkHttpClient()
-
     
-    suspend fun getCurrentWeather(): Result<WeatherInfo> = withContext(Dispatchers.IO) {
+    suspend fun getCurrentWeather(lat: Double, lon: Double): Result<WeatherInfo> = withContext(Dispatchers.IO) {
         try {
-            var lat = 24.7136
-            var lon = 46.6753
-            var city = "الرياض (افتراضي)"
-            
-            try {
-                // Get location via IP
-                val ipRequest = Request.Builder().url("https://ipwho.is/").build()
-                val ipResponse = client.newCall(ipRequest).execute()
-                val bodyStr = ipResponse.body?.string()
-                if (!bodyStr.isNullOrEmpty()) {
-                    val ipData = JSONObject(bodyStr)
-                    if (ipData.optBoolean("success", false)) {
-                        lat = ipData.optDouble("latitude", 24.7136)
-                        lon = ipData.optDouble("longitude", 46.6753)
-                        city = ipData.optString("city", "الرياض")
-                    }
-                }
-            } catch (e: Exception) {
-                // Ignore IP lookup failure, use defaults
-            }
-
             // Get weather via Open-Meteo
             val weatherUrl = "https://api.open-meteo.com/v1/forecast?latitude=$lat&longitude=$lon&current=temperature_2m,is_day,weather_code"
             val weatherRequest = Request.Builder().url(weatherUrl).build()
@@ -54,10 +32,9 @@ class WeatherRepository {
             val code = current.getInt("weather_code")
             val desc = getWeatherDescription(code)
             
-            Result.success(WeatherInfo(temp, desc, isDay, code, city))
+            Result.success(WeatherInfo(temp, desc, isDay, code, "الموقع الحالي"))
         } catch (e: Exception) {
-            // Ultimate fallback if Open-Meteo fails
-            Result.success(WeatherInfo(25, "غير متوفر", true, 0, "الطقس"))
+            Result.success(WeatherInfo(25, "غير متوفر", true, 0, "الموقع الحالي"))
         }
     }
 

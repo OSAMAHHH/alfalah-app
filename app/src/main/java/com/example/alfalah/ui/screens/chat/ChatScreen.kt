@@ -17,10 +17,54 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.alfalah.data.model.Product
 import com.example.alfalah.ui.components.EmptyState
+
+fun parseMarkdownText(markdown: String): AnnotatedString {
+    val lines = markdown.lines()
+    val processedLines = lines.map { line ->
+        var trimmed = line.trimStart()
+        if (trimmed.startsWith("### ") || trimmed.startsWith("## ") || trimmed.startsWith("# ")) {
+            trimmed = "**" + trimmed.replaceFirst(Regex("^#+\\s*"), "") + "**"
+        } else if (trimmed.startsWith("* ") || trimmed.startsWith("- ")) {
+            trimmed = "• " + trimmed.substring(2)
+        }
+        trimmed
+    }
+    val processedText = processedLines.joinToString("\n")
+
+    return buildAnnotatedString {
+        val regex = Regex("\\*\\*(.*?)\\*\\*")
+        var currentIndex = 0
+
+        regex.findAll(processedText).forEach { matchResult ->
+            val start = matchResult.range.first
+            val end = matchResult.range.last + 1
+            val boldContent = matchResult.groupValues[1]
+
+            if (start > currentIndex) {
+                append(processedText.substring(currentIndex, start))
+            }
+
+            withStyle(SpanStyle(fontWeight = FontWeight.Bold)) {
+                append(boldContent)
+            }
+
+            currentIndex = end
+        }
+
+        if (currentIndex < processedText.length) {
+            append(processedText.substring(currentIndex))
+        }
+    }
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -131,13 +175,18 @@ fun ChatMessageBubble(message: ChatMessageUi, onNavigateToProduct: (String) -> U
         Surface(
             color = if (isUser) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
             shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp, bottomStart = if (isUser) 24.dp else 4.dp, bottomEnd = if (isUser) 4.dp else 24.dp),
-            modifier = Modifier.widthIn(max = 280.dp)
+            modifier = Modifier.widthIn(max = 300.dp)
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
-                Text(message.text, style = MaterialTheme.typography.bodyLarge, color = if (isUser) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant, lineHeight = MaterialTheme.typography.bodyLarge.lineHeight * 1.5f)
+                Text(
+                    text = parseMarkdownText(message.text),
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = if (isUser) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
+                    lineHeight = MaterialTheme.typography.bodyLarge.lineHeight * 1.5f
+                )
                 if (message.recommendedProducts.isNotEmpty()) {
                     Spacer(modifier = Modifier.height(16.dp))
-                    Text("مقترحات لك:", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+                    Text("منتجات متوفرة في المتجر للعلاج:", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
                     Spacer(modifier = Modifier.height(12.dp))
                     message.recommendedProducts.forEach { product ->
                         Surface(
@@ -148,7 +197,7 @@ fun ChatMessageBubble(message: ChatMessageUi, onNavigateToProduct: (String) -> U
                             Row(modifier = Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
                                 Column {
                                     Text(product.name, style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onSurface)
-                                    Text("${product.price} ر.س", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
+                                    Text("${product.price} ر.ي", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
                                 }
                             }
                         }
@@ -180,3 +229,4 @@ fun Dot(delay: Int) {
     val alpha by transition.animateFloat(initialValue = 0.3f, targetValue = 1f, animationSpec = infiniteRepeatable(animation = tween(durationMillis = 600, delayMillis = delay, easing = LinearEasing), repeatMode = RepeatMode.Reverse))
     Box(modifier = Modifier.size(8.dp).background(MaterialTheme.colorScheme.primary.copy(alpha = alpha), CircleShape))
 }
+

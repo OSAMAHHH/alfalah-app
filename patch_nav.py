@@ -1,57 +1,52 @@
 import re
 
-with open("app/src/main/java/com/example/alfalah/ui/navigation/AppNavigation.kt", "r") as f:
-    text = f.read()
+with open("app/src/main/java/com/example/alfalah/ui/navigation/AppNavigation.kt", "r", encoding="utf-8") as f:
+    content = f.read()
 
-# Add WELCOME to Routes
-text = text.replace('const val LOGIN = "login"', 'const val WELCOME = "welcome"\n    const val LOGIN = "login"')
+# Add to Routes
+content = content.replace('    const val ADMIN_DASHBOARD = "admin_dashboard"', '    const val PROFILE = "profile"\n    const val ADMIN_DASHBOARD = "admin_dashboard"')
 
-# Import WelcomeScreen
-text = text.replace('import com.example.alfalah.ui.screens.auth.RegisterScreen', 'import com.example.alfalah.ui.screens.auth.RegisterScreen\nimport com.example.alfalah.ui.screens.auth.WelcomeScreen')
+# Add imports for Profile
+imports = """import com.example.alfalah.ui.screens.profile.ProfileScreen
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.outlined.Person"""
+content = content.replace("import com.example.alfalah.ui.screens.auth.WelcomeScreen", "import com.example.alfalah.ui.screens.auth.WelcomeScreen\n" + imports)
 
-# Change startDestination logic
-old_start = '''    val startDestination = remember {
-        if (FirebaseAuth.getInstance().currentUser != null) Routes.HOME else Routes.LOGIN
-    }'''
-new_start = '''    val startDestination = remember {
-        if (FirebaseAuth.getInstance().currentUser != null) Routes.HOME else Routes.WELCOME
-    }'''
-text = text.replace(old_start, new_start)
+# Update BottomNavItem list
+old_nav_items = """val bottomNavItems = listOf(
+    BottomNavItem(Routes.HOME, "الرئيسية", Icons.Filled.Home, Icons.Outlined.Home),
+    BottomNavItem(Routes.STORE, "المتجر", Icons.Filled.Store, Icons.Outlined.Store),
+    BottomNavItem(Routes.CHAT, "المساعد", Icons.Filled.SmartToy, Icons.Outlined.SmartToy)
+)"""
+new_nav_items = """val bottomNavItems = listOf(
+    BottomNavItem(Routes.HOME, "الرئيسية", Icons.Filled.Home, Icons.Outlined.Home),
+    BottomNavItem(Routes.STORE, "المتجر", Icons.Filled.Store, Icons.Outlined.Store),
+    BottomNavItem(Routes.CHAT, "المساعد", Icons.Filled.SmartToy, Icons.Outlined.SmartToy),
+    BottomNavItem(Routes.PROFILE, "حسابي", Icons.Filled.Person, Icons.Outlined.Person)
+)"""
+content = content.replace(old_nav_items, new_nav_items)
 
-# Add WELCOME composable before LOGIN
-welcome_composable = '''
-            composable(Routes.WELCOME) {
-                WelcomeScreen(
-                    onNavigateToLogin = { navController.navigate(Routes.LOGIN) },
-                    onNavigateToHomeAsGuest = { 
-                        navController.navigate(Routes.HOME) {
-                            popUpTo(Routes.WELCOME) { inclusive = true }
-                        }
-                    }
-                )
-            }'''
-text = text.replace('composable(Routes.LOGIN) {', welcome_composable + '\n            composable(Routes.LOGIN) {')
+# Update showBottomBar
+old_show = "val showBottomBar = currentRoute in listOf(Routes.HOME, Routes.STORE, Routes.CHAT)"
+new_show = "val showBottomBar = currentRoute in listOf(Routes.HOME, Routes.STORE, Routes.CHAT, Routes.PROFILE)"
+content = content.replace(old_show, new_show)
 
-# Modify Chat and other protected routes
-chat_composable_old = '''            composable(Routes.CHAT) { 
-                ChatScreen(
-                    onBack = { navController.popBackStack() }, 
-                    onNavigateToProduct = { id -> navController.navigate(Routes.productDetails(id)) }
-                ) 
-            }'''
-chat_composable_new = '''            composable(Routes.CHAT) { 
+# Add composable
+composable_profile = """
+            composable(Routes.PROFILE) {
                 if (FirebaseAuth.getInstance().currentUser == null) {
                     androidx.compose.runtime.LaunchedEffect(Unit) {
                         navController.navigate(Routes.LOGIN)
                     }
                 } else {
-                    ChatScreen(
-                        onBack = { navController.popBackStack() }, 
-                        onNavigateToProduct = { id -> navController.navigate(Routes.productDetails(id)) }
-                    ) 
+                    ProfileScreen(
+                        authRepository = authRepository,
+                        onBack = { navController.popBackStack() }
+                    )
                 }
-            }'''
-text = text.replace(chat_composable_old, chat_composable_new)
+            }
+"""
+content = content.replace("composable(Routes.CHAT) {", composable_profile.strip() + "\n            composable(Routes.CHAT) {")
 
-with open("app/src/main/java/com/example/alfalah/ui/navigation/AppNavigation.kt", "w") as f:
-    f.write(text)
+with open("app/src/main/java/com/example/alfalah/ui/navigation/AppNavigation.kt", "w", encoding="utf-8") as f:
+    f.write(content)

@@ -43,93 +43,120 @@ const generateWithRetry = async (ai: GoogleGenAI, model: string, contents: strin
 
 export const processChat = async (request: AiChatRequest): Promise<AiChatResponse> => {
   const apiKey = process.env.GEMINI_API_KEY;
+  const { message, history } = request;
   if (!apiKey || apiKey === 'your_gemini_api_key_here') {
     throw new AiServiceError("عذراً، مفتاح GEMINI_API_KEY غير متوفر في الخادم.", 500);
   }
   const ai = new GoogleGenAI({ apiKey });
 
-  // 1. Local Query Analysis (0 Gemini calls, cached Firestore)
-  const { intent, matchedCrop, matches } = await analyzeQuery(request.message);
+  // 1. History-aware & Multi-factor Query Analysis
+  const analysis = await analyzeQuery(message, history);
+  const { intent, matchedCrop, matches, confidence } = analysis;
 
   let systemContext = "";
   let finalRecommendedProductIds: string[] = [];
+  let source: "KNOWLEDGE_BASE" | "GEMINI_WITH_KNOWLEDGE" | "GEMINI_GENERAL" = "GEMINI_GENERAL";
 
-  // 2. Build Context based on local analysis
+  // 2. Build Context based on local analysis & confidence level
   if (intent === "GENERAL") {
+    source = "GEMINI_GENERAL";
     systemContext = `
-      أنت مساعد مفيد وذكي ومختصر. 
-      هذا السؤال ليس زراعياً. أجب على سؤال المستخدم بشكل طبيعي وودي ومباشر.
+      أنت المساعد الذكي لتطبيق 'الفلاح'.
+      سؤال المستخدم غير زراعي. أجب على سؤاله بشكل طبيعي، مهذب، ومباشر دون إطالة.
     `;
   } else {
     // Intent is AGRICULTURAL
-    if (matchedCrop) {
-      if (matches.length > 0) {
-        // Take top 2 matches to give Gemini context without overloading prompt
-        const topMatches = matches.slice(0, 2);
-        
-        // Collect recommended products from top matches
-        const productIds = new Set<string>();
-        topMatches.forEach(m => {
-          if (m.problem.recommendedProductIds) {
-            m.problem.recommendedProductIds.forEach(id => productIds.add(id));
-          }
-        });
-        
-        const products = await getActiveProductsByIds(Array.from(productIds));
-        finalRecommendedProductIds = products.map((p: any) => p.id);
-        
-        systemContext = `
-          أنت مساعد زراعي خبير وموثوق في تطبيق 'الفلاح'.
-          المحصول المذكور: (${matchedCrop.name}).
-          بناءً على قاعدة المعرفة الخاصة بنا، إليك أبرز المشاكل الزراعية المطابقة لحالة المستخدم:
-          ${topMatches.map(m => `- مشكلة: ${m.problem.name}\n  الأسباب: ${m.problem.causes}\n  العلاج: ${m.problem.treatment}`).join('\n\n')}
-          
-          المنتجات المتوفرة للعلاج في متجرنا: ${products.map((p: any) => p.name + ' - ' + p.usage).join(', ')}
-          
-          التعليمات لك:
-          - اقرأ سؤال المستخدم وأعراضه بعناية، ثم استنتج المشكلة الأقرب من القائمة أعلاه.
-          - صغ إجابة تفصيلية ومطمئنة للمستخدم توضح المشكلة والحلول.
-          - اذكر المنتجات المرفقة في سياق حديثك فقط كحل مقترح (إذا توفرت).
-          - تحذير هام جداً: لا تخترع أو تقترح أسماء منتجات، جرعات، أو أسمدة، أو مبيدات، أو معرفات من خارج النظام أبداً.
-          - لا تذكر النقاط (Scores).
-        `;
+    if (confidence === "HIGH" || (confidence === "MEDIUM" && matches.length > 0)) {
+      const topMatch = matches[0];
+      const topMatches = matches.slice(0, 2);
+      
+      // Determine source precision
+      if (topMatch.score >= 70) {
+        source = "KNOWLEDGE_BASE";
       } else {
-        // Matched crop but no matching problem found
-        systemContext = `
-          أنت مساعد زراعي خبير في تطبيق 'الفلاح'.
-          المحصول المذكور هو (${matchedCrop.name}) (قد يكون القات أو أي محصول آخر).
-          التعليمات لك:
-          - أجب بناءً على معرفتك الزراعية العامة وخبرتك كمستشار زراعي.
-          - قدم نصائح زراعية مفيدة وصحيحة لهذا المحصول.
-          - تحذير هام جداً: يُمنع منعاً باتاً اختراع أو اقتراح أسماء منتجات زراعية تجارية أو مبيدات أو أسمدة محددة غير موجودة في متجرنا. اكتفِ بالنصائح العامة أو المكونات الفعالة.
-        `;
+        source = "GEMINI_WITH_KNOWLEDGE";
       }
-    } else {
-      // Agricultural question but NO specific crop matched
+
+      // Collect recommended products
+      const productIds = new Set<string>();
+      topMatches.forEach(m => {
+        if (m.problem.recommendedProductIds) {
+          m.problem.recommendedProductIds.forEach(id => productIds.add(id));
+        }
+      });
+
+      const products = await getActiveProductsByIds(Array.from(productIds));
+      finalRecommendedProductIds = products.map((p: any) => p.id);
+
+      const targetCropName = (matchedCrop ? matchedCrop.name : topMatch.matchedCrop?.name) || "المحصول";
+
       systemContext = `
-        أنت مساعد زراعي خبير في تطبيق 'الفلاح'.
-        يسأل المستخدم سؤالاً زراعياً.
+        أنت المساعد الزراعي الذكي لتطبيق 'الفلاح'، تتحدث مع مزارع يمني بلغة عربية بسيطة، واضحة ومباشرة.
+        
+        تم العثور على تشخيص مطابق في قاعدة معرفة 'الفلاح' المعتمدة:
+        - المحصول: ${targetCropName}
+        ${topMatches.map(m => `
+        - اسم المشكلة/الآفة: ${m.problem.name} (نوعها: ${m.problem.type})
+          الأعراض: ${m.problem.symptoms ? m.problem.symptoms.join('، ') : 'غير محددة'}
+          الأسباب: ${m.problem.causes || 'عوامل بيئية/حشرية/فطرية'}
+          طريقة العلاج المعتمدة: ${m.problem.treatment || 'اتباع الرش الوقائي'}
+          طرق الوقاية: ${m.problem.prevention || 'العناية بالري والتهوية'}
+        `).join('\n')}
+
+        المنتجات المتوفرة للعلاج في متجر الفلاح:
+        ${products.length > 0 ? products.map(p => `- ${p.name}: ${p.usage} (الجرعة: ${p.dosage || 'حسب الملصق'})`).join('\n') : 'لا يوجد منتج تجاري مسجل حالياً في المتجر لهذه المشكلة المحددة.'}
+
+        قواعد الإجابة الصارمة:
+        1. ابدأ فوراً بدون مقدمات إنشائية أو ترحيب طويل.
+        2. هيكل إجابتك كالتالي:
+           - التشخيص الأرجح: اذكر اسم المشكلة (${topMatch.problem.name}) مباشرة.
+           - الأعراض والمسببات باختصار شديد.
+           - خطة العلاج المعتمدة من الدليل: اذكر العلاج والمنتجات المتوفرة بالاسم إن وجدت، أو وضح المادة الفعالة/الإجراء الزراعي إذا لم يتوفر منتج بالمتجر.
+           - نصيحة وقائية سريعة للمستقبل.
+        3. منع الهلوسة: لا تخترع أسماء مبيدات أو أسمدة أو شركات تجارية من خارج القائمة أعلاه مطلقاً.
+        4. لا تذكر أي أرقام تقييم (Scores) أو مصطلحات برمجية.
+      `;
+    } else {
+      // AGRICULTURAL but no reliable match in knowledge base (Score < 35 or no match)
+      source = "GEMINI_GENERAL";
+      const cropName = matchedCrop ? matchedCrop.name : "الزرع/المحصول";
+
+      systemContext = `
+        أنت المساعد الزراعي الذكي لتطبيق 'الفلاح'.
+        يسأل المستخدم عن مشكلة أو استفسار زراعي يخص (${cropName}).
+        
+        تنبيه هام: هذه الحالة غير مسجلة في قاعدة معرفة أو دليل 'الفلاح' حالياً.
+        
         التعليمات لك:
-        - أجب على سؤاله الزراعي بشكل مفيد وعلمي.
-        - قدم نصائح عامة مفيدة.
-        - تحذير هام جداً: يُمنع منعاً باتاً اختراع أو اقتراح أسماء منتجات تجارية أو مبيدات أو أسمدة محددة غير موجودة في متجرنا. اكتفِ بالأسماء العلمية أو الإجراءات الزراعية.
+        1. أجب بأسلوب خبير زراعي ناصح ومفيد للمزارع اليمني.
+        2. ابدأ مباشرة بالاحتمال الزراعي العلمي الأرجح ثم الأعراض والنصائح المتبعة.
+        3. اذكر بوضوح وبكل أمانة أن هذه إرشادات زراعية عامة لعدم توفر تسجيل لهذه الحالة في دليل الفلاح حالياً.
+        4. تحذير حاسم ضد الهلوسة: يُمنع منعاً باتاً اختراع أي أسماء تجارية لمنتجات أو مبيدات أو أسمدة محددة. اكتفِ بالاسم العلمي أو المادة الفعالة أو المعاملات الزراعية والوقائية (كالري، التقليم، أو المكافحة العضوية).
       `;
     }
   }
 
-  // 3. Single Gemini Call
+  // 3. Format history for memory
+  let historyText = "";
+  if (history && history.length > 0) {
+    historyText = "سياق المحادثة السابقة بينك وبين المزارع:\n" + 
+      history.map(h => `${h.role === 'user' ? 'المزارع' : 'المساعد'}: ${h.content}`).join("\n") + "\n\n";
+  }
+
   const finalPrompt = `
-    معلومات وتوجيهات لك (لا تذكرها للمستخدم مباشرة، بل نفذها):
+    التوجيهات والسياق:
     ${systemContext}
     
-    سؤال المستخدم: "${request.message}"
+    ${historyText}
+    رسالة المزارع الحالية: "${message}"
   `;
 
-  // We use gemini-3.6-flash as it is the standard, fast, and supported model in the @google/genai SDK.
+  // Standard and fast Gemini model
   const finalResponse = await generateWithRetry(ai, 'gemini-3.6-flash', finalPrompt);
-  
+
   return {
     answer: finalResponse.text || "عذراً، حدث خطأ أثناء صياغة الإجابة.",
-    recommendedProducts: finalRecommendedProductIds
+    recommendedProducts: finalRecommendedProductIds,
+    source
   };
 };

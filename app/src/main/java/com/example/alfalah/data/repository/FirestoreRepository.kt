@@ -79,6 +79,53 @@ class FirestoreRepository {
     }
 
     // --- Crops ---
+
+    suspend fun getCropsPaginated(limit: Long = 15, lastDoc: com.google.firebase.firestore.DocumentSnapshot? = null): Result<Pair<List<Crop>, com.google.firebase.firestore.DocumentSnapshot?>> {
+        return try {
+            var query = cropsCollection.limit(limit)
+            if (lastDoc != null) {
+                query = query.startAfter(lastDoc)
+            }
+            val snapshot = query.get().await()
+            val crops = snapshot.documents.mapNotNull { doc ->
+                try {
+                    doc.toObject(Crop::class.java)?.let { crop ->
+                        crop.copy(isActive = doc.getBoolean("isActive") ?: doc.getBoolean("active") ?: crop.isActive)
+                    }
+                } catch (e: Exception) {
+                    null
+                }
+            }
+            val nextDoc = if (snapshot.documents.size == limit.toInt()) snapshot.documents.lastOrNull() else null
+            Result.success(Pair(crops, nextDoc))
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun getProblemsPaginated(limit: Long = 15, lastDoc: com.google.firebase.firestore.DocumentSnapshot? = null): Result<Pair<List<AgriculturalProblem>, com.google.firebase.firestore.DocumentSnapshot?>> {
+        return try {
+            var query = problemsCollection.limit(limit)
+            if (lastDoc != null) {
+                query = query.startAfter(lastDoc)
+            }
+            val snapshot = query.get().await()
+            val problems = snapshot.documents.mapNotNull { doc ->
+                try {
+                    doc.toObject(AgriculturalProblem::class.java)?.let { prob ->
+                        prob.copy(isActive = doc.getBoolean("isActive") ?: doc.getBoolean("active") ?: prob.isActive)
+                    }
+                } catch (e: Exception) {
+                    null
+                }
+            }
+            val nextDoc = if (snapshot.documents.size == limit.toInt()) snapshot.documents.lastOrNull() else null
+            Result.success(Pair(problems, nextDoc))
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
     suspend fun getCrops(): Result<List<Crop>> {
         return try {
             val snapshot = cropsCollection.get().await()
@@ -125,6 +172,15 @@ class FirestoreRepository {
     suspend fun updateCrop(crop: Crop): Result<Unit> {
         return try {
             cropsCollection.document(crop.id).set(crop).await()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun deleteCrop(cropId: String): Result<Unit> {
+        return try {
+            cropsCollection.document(cropId).delete().await()
             Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e)
@@ -213,6 +269,14 @@ class FirestoreRepository {
     suspend fun updateProblem(problem: AgriculturalProblem): Result<Unit> {
         return try {
             problemsCollection.document(problem.id).set(problem).await()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+    suspend fun deleteProblem(problemId: String): Result<Unit> {
+        return try {
+            problemsCollection.document(problemId).delete().await()
             Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e)

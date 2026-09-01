@@ -277,10 +277,29 @@ fun LoginScreen(
                                 style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
                             )
                         }
+
                     }
                     
+                    Spacer(modifier = Modifier.height(24.dp))
+                    
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)
+                    ) {
+                        HorizontalDivider(modifier = Modifier.weight(1f), color = MaterialTheme.colorScheme.outlineVariant)
+                        Text(
+                            text = "أو",
+                            modifier = Modifier.padding(horizontal = 16.dp),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        HorizontalDivider(modifier = Modifier.weight(1f), color = MaterialTheme.colorScheme.outlineVariant)
+                    }
+                    
+                    Spacer(modifier = Modifier.height(24.dp))
                     
                     // Google Login Button
+
                     OutlinedButton(
                         onClick = {
                             isLoading = true

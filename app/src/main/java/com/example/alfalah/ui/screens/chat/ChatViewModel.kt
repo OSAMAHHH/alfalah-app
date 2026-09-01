@@ -3,6 +3,7 @@ package com.example.alfalah.ui.screens.chat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.alfalah.data.model.ChatMessage
+import com.example.alfalah.data.model.ChatMessageItem
 import com.example.alfalah.data.model.Product
 import com.example.alfalah.data.repository.AiRepository
 import com.example.alfalah.data.repository.FirestoreRepository
@@ -42,20 +43,15 @@ class ChatViewModel(
         _isLoading.value = true
         
         viewModelScope.launch {
-            val localResponse = searchLocalKnowledgeBase(text)
-            if (localResponse != null) {
-                val aiMsg = ChatMessageUi(
-                    id = (System.currentTimeMillis() + 1).toString(),
-                    text = localResponse,
-                    isUser = false,
-                    recommendedProducts = emptyList()
-                )
-                _messages.value = _messages.value + aiMsg
-                _isLoading.value = false
-                return@launch
-            }
+            
 
-            val (responseText, productIds) = aiRepository.askAssistant(text)
+            val historyItems = _messages.value.takeLast(5).map { msg ->
+                ChatMessageItem(
+                    role = if (msg.isUser) "user" else "assistant",
+                    content = msg.text
+                )
+            }
+            val (responseText, productIds) = aiRepository.askAssistant(text, historyItems)
             var finalResponseText = responseText
             if (responseText.contains("تجاوزت حد الاستخدام") || responseText.contains("غير متاحة مؤقتاً") || responseText.contains("لا يمكنني الاتصال")) {
                 finalResponseText = "المساعد الذكي غير متاح مؤقتاً، لكن يمكنك الاستفادة من دليل المزارع الآن."
@@ -81,32 +77,5 @@ class ChatViewModel(
         }
     }
 
-    private suspend fun searchLocalKnowledgeBase(query: String): String? {
-        val problems = firestoreRepository.getProblems().getOrNull() ?: emptyList()
-        val crops = firestoreRepository.getCrops().getOrNull() ?: emptyList()
-        
-        val lowerQuery = query.lowercase()
-        
-        for (problem in problems) {
-            val hasName = lowerQuery.contains(problem.name.lowercase())
-            val hasSynonym = problem.synonyms.any { lowerQuery.contains(it.lowercase()) }
-            if (hasName || hasSynonym) {
-                val cropName = crops.find { it.id == problem.cropId }?.name ?: "المحصول"
-                return "من خلال قاعدة المعرفة (دليل المزارع):\nالمشكلة: ${problem.name} في $cropName\nالأعراض: ${problem.symptoms.joinToString("، ")}\nالأسباب: ${problem.causes}\nالعلاج: ${problem.treatment}"
-            }
-        }
-        
-        for (crop in crops) {
-            val hasName = lowerQuery.contains(crop.name.lowercase())
-            val hasSynonym = crop.synonyms.any { lowerQuery.contains(it.lowercase()) }
-            
-            if (hasName || hasSynonym) {
-                if (lowerQuery.contains("معلومات") || lowerQuery.contains("ما هو") || lowerQuery.contains("زراعة")) {
-                    return "من خلال قاعدة المعرفة (دليل المزارع):\nالمحصول: ${crop.name}\nالوصف: ${crop.description}"
-                }
-            }
-        }
-        
-        return null
-    }
+    
 }

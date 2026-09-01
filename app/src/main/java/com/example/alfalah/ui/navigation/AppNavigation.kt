@@ -23,6 +23,9 @@ import com.example.alfalah.ui.screens.admin.AdminDashboardScreen
 import com.example.alfalah.ui.screens.auth.LoginScreen
 import com.example.alfalah.ui.screens.auth.RegisterScreen
 import com.example.alfalah.ui.screens.auth.WelcomeScreen
+import com.example.alfalah.ui.screens.profile.ProfileScreen
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.outlined.Person
 import com.example.alfalah.ui.screens.chat.ChatScreen
 import com.example.alfalah.ui.screens.home.HomeScreen
 import com.example.alfalah.ui.screens.guide.GuideScreen
@@ -39,6 +42,7 @@ object Routes {
     const val CHAT = "chat"
     const val GUIDE = "guide/{category}"
     fun guide(category: String) = "guide/$category"
+    const val PROFILE = "profile"
     const val ADMIN_DASHBOARD = "admin_dashboard"
     val IMPORT_DB = "import_db"
     const val PRODUCT_DETAILS = "product_details/{productId}"
@@ -55,7 +59,8 @@ data class BottomNavItem(
 val bottomNavItems = listOf(
     BottomNavItem(Routes.HOME, "الرئيسية", Icons.Filled.Home, Icons.Outlined.Home),
     BottomNavItem(Routes.STORE, "المتجر", Icons.Filled.Store, Icons.Outlined.Store),
-    BottomNavItem(Routes.CHAT, "المساعد", Icons.Filled.SmartToy, Icons.Outlined.SmartToy)
+    BottomNavItem(Routes.CHAT, "المساعد", Icons.Filled.SmartToy, Icons.Outlined.SmartToy),
+    BottomNavItem(Routes.PROFILE, "حسابي", Icons.Filled.Person, Icons.Outlined.Person)
 )
 
 @Composable
@@ -65,7 +70,7 @@ fun AppNavigation(authRepository: AuthRepository = AuthRepository()) {
     val currentDestination = navBackStackEntry?.destination
     val currentRoute = currentDestination?.route
 
-    val showBottomBar = currentRoute in listOf(Routes.HOME, Routes.STORE, Routes.CHAT)
+    val showBottomBar = currentRoute in listOf(Routes.HOME, Routes.STORE, Routes.CHAT, Routes.PROFILE)
 
     // Evaluate startDestination exactly once when the NavHost is created.
     // This prevents the NavHost from rebuilding/flickering when AuthRepository finishes fetching from Firestore.
@@ -189,6 +194,18 @@ fun AppNavigation(authRepository: AuthRepository = AuthRepository()) {
                     onBack = { navController.popBackStack() }, 
                     onNavigateToProduct = { id -> navController.navigate(Routes.productDetails(id)) }
                 ) 
+            }
+            composable(Routes.PROFILE) {
+                if (FirebaseAuth.getInstance().currentUser == null) {
+                    androidx.compose.runtime.LaunchedEffect(Unit) {
+                        navController.navigate(Routes.LOGIN)
+                    }
+                } else {
+                    ProfileScreen(
+                        authRepository = authRepository,
+                        onBack = { navController.popBackStack() }
+                    )
+                }
             }
             composable(Routes.CHAT) { 
                 if (FirebaseAuth.getInstance().currentUser == null) {

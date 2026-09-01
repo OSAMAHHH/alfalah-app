@@ -1,11 +1,13 @@
 export interface AiChatRequest {
   message: string;
   conversationId?: string;
+  history?: { role: string, content: string }[];
 }
 
 export interface AiChatResponse {
   answer: string;
   recommendedProducts: string[];
+  source?: string;
 }
 
 export interface BaseEntity {

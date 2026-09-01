@@ -3,7 +3,6 @@
     <base-config cleartextTrafficPermitted="false">
         <trust-anchors>
             <certificates src="system" />
-            <certificates src="@raw/lets_encrypt_roots" />
         </trust-anchors>
     </base-config>
 </network-security-config>

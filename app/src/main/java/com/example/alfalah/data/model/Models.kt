@@ -7,7 +7,8 @@ data class User(
     @DocumentId val id: String = "",
     val name: String = "",
     val email: String = "",
-    val role: String = "user" // "user" or "admin"
+    val role: String = "user", // "user" or "admin"
+    val photoUrl: String? = null
 )
 
 @JsonClass(generateAdapter = true)
@@ -69,10 +70,15 @@ data class ChatMessage(
 )
 
 // Custom Backend API Models
+
+@JsonClass(generateAdapter = true)
+data class ChatMessageItem(val role: String, val content: String)
+
 @JsonClass(generateAdapter = true)
 data class AiChatRequest(
     val message: String,
-    val conversationId: String = ""
+    val conversationId: String = "",
+    val history: List<ChatMessageItem> = emptyList()
 )
 
 @JsonClass(generateAdapter = true)

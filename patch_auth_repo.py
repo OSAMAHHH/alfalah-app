@@ -1,31 +1,24 @@
-import re
+with open("app/src/main/java/com/example/alfalah/data/repository/AuthRepository.kt", "r", encoding="utf-8") as f:
+    content = f.read()
 
-with open("app/src/main/java/com/example/alfalah/data/repository/AuthRepository.kt", "r") as f:
-    text = f.read()
-
-import_google_auth = """import com.google.firebase.auth.GoogleAuthProvider
-"""
-text = text.replace("import com.google.firebase.auth.FirebaseAuth", import_google_auth + "import com.google.firebase.auth.FirebaseAuth")
-
-google_signin_func = """
-    suspend fun googleSignIn(idToken: String): Result<Unit> {
+update_func = """
+    suspend fun updateUserName(newName: String): Result<Unit> {
+        val user = auth.currentUser ?: return Result.failure(Exception("غير مسجل الدخول"))
         return try {
-            val credential = GoogleAuthProvider.getCredential(idToken, null)
-            val result = auth.signInWithCredential(credential).await()
-            val user = result.user!!
-            // Check if user exists in Firestore
-            val doc = firestore.collection("users").document(user.uid).get().await()
-            if (!doc.exists()) {
-                val newUser = User(id = user.uid, name = user.displayName ?: "مزارع", email = user.email ?: "", role = "user")
-                firestore.collection("users").document(user.uid).set(newUser).await()
-            }
+            firestore.collection("users").document(user.uid)
+                .update("name", newName).await()
+            
+            // Update local state directly to reflect immediately
+            _currentUser.value = _currentUser.value?.copy(name = newName)
             Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e)
         }
     }
-"""
-text = text.replace("fun logout() {", google_signin_func + "\n    fun logout() {")
 
-with open("app/src/main/java/com/example/alfalah/data/repository/AuthRepository.kt", "w") as f:
-    f.write(text)
+    fun logout() {"""
+
+content = content.replace("    fun logout() {", update_func)
+
+with open("app/src/main/java/com/example/alfalah/data/repository/AuthRepository.kt", "w", encoding="utf-8") as f:
+    f.write(content)

@@ -4,7 +4,7 @@ import * as aiService from '../services/aiService';
 
 export const handleChat = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { message, conversationId } = req.body;
+    const { message, conversationId, history } = req.body;
 
     // Validate the input message
     if (!message || typeof message !== 'string' || message.trim().length === 0) {
@@ -17,7 +17,7 @@ export const handleChat = async (req: AuthenticatedRequest, res: Response) => {
     }
 
     // Process chat using the AI service abstraction
-    const response = await aiService.processChat({ message, conversationId });
+    const response = await aiService.processChat({ message, conversationId, history });
     
     return res.json(response);
   } catch (error: any) {

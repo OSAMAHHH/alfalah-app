@@ -1,25 +1,34 @@
 import re
 
-with open("app/src/main/java/com/example/alfalah/data/repository/FirestoreRepository.kt", "r") as f:
-    text = f.read()
+with open("app/src/main/java/com/example/alfalah/data/repository/FirestoreRepository.kt", "r", encoding="utf-8") as f:
+    content = f.read()
 
-import_lines = "import kotlinx.coroutines.Dispatchers\nimport kotlinx.coroutines.withContext\n"
-text = text.replace("import kotlinx.coroutines.tasks.await", "import kotlinx.coroutines.tasks.await\n" + import_lines)
-
-upload_func = """
-    suspend fun uploadImage(uri: Uri): Result<String> = withContext(Dispatchers.IO) {
-        try {
-            val storageRef = FirebaseStorage.getInstance().reference.child("products/${UUID.randomUUID()}.jpg")
-            storageRef.putFile(uri).await()
-            val downloadUrl = storageRef.downloadUrl.await().toString()
-            Result.success(downloadUrl)
+# Add deleteCrop after updateCrop
+delete_crop_code = """    suspend fun deleteCrop(cropId: String): Result<Unit> {
+        return try {
+            cropsCollection.document(cropId).delete().await()
+            Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e)
         }
-    }
-"""
+    }"""
 
-text = text.replace("suspend fun getProducts():", upload_func + "\n    suspend fun getProducts():")
+if "fun deleteCrop" not in content:
+    content = content.replace("    // --- Agricultural Problems ---", delete_crop_code + "\n\n    // --- Agricultural Problems ---")
 
-with open("app/src/main/java/com/example/alfalah/data/repository/FirestoreRepository.kt", "w") as f:
-    f.write(text)
+# Add deleteProblem after updateProblem
+delete_problem_code = """    suspend fun deleteProblem(problemId: String): Result<Unit> {
+        return try {
+            problemsCollection.document(problemId).delete().await()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }"""
+
+if "fun deleteProblem" not in content:
+    # Just append before the last closing brace
+    content = re.sub(r'}\s*$', delete_problem_code + "\n}", content)
+
+with open("app/src/main/java/com/example/alfalah/data/repository/FirestoreRepository.kt", "w", encoding="utf-8") as f:
+    f.write(content)

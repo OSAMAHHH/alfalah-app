@@ -46,7 +46,7 @@ class AiRepository {
             .create(AiApiService::class.java)
     }
 
-    suspend fun askAssistant(message: String, conversationId: String = ""): Pair<String, List<String>> = withContext(Dispatchers.IO) {
+    suspend fun askAssistant(message: String, history: List<com.example.alfalah.data.model.ChatMessageItem> = emptyList(), conversationId: String = ""): Pair<String, List<String>> = withContext(Dispatchers.IO) {
         try {
             val user = FirebaseAuth.getInstance().currentUser
             if (user == null) {
@@ -57,7 +57,7 @@ class AiRepository {
             val tokenResult = user.getIdToken(false).await()
             val token = "Bearer ${tokenResult.token}"
 
-            val request = AiChatRequest(message = message, conversationId = conversationId)
+            val request = AiChatRequest(message = message, conversationId = conversationId, history = history)
             
             val fullUrl = if (BASE_URL.endsWith("/")) "${BASE_URL}api/ai/chat" else "${BASE_URL}/api/ai/chat"
             Log.d("AI_DEBUG", "BASE_URL: $BASE_URL")
