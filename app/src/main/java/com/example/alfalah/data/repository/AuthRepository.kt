@@ -48,7 +48,7 @@ class AuthRepository {
     suspend fun register(name: String, email: String, password: String): Result<Unit> {
         return try {
             val result = auth.createUserWithEmailAndPassword(email, password).await()
-            val user = User(id = result.user!!.uid, name = name, email = email, role = "user")
+            val user = User(id = result.user?.uid ?: "", name = name, email = email, role = "user")
             firestore.collection("users").document(user.id).set(user).await()
             Result.success(Unit)
         } catch (e: Exception) {
@@ -61,7 +61,7 @@ class AuthRepository {
         return try {
             val credential = GoogleAuthProvider.getCredential(idToken, null)
             val result = auth.signInWithCredential(credential).await()
-            val user = result.user!!
+            val user = result.user ?: throw Exception("User is null")
             // Check if user exists in Firestore
             val doc = firestore.collection("users").document(user.uid).get().await()
             if (!doc.exists()) {
@@ -92,4 +92,29 @@ class AuthRepository {
     fun logout() {
         auth.signOut()
     }
+suspend fun resetPassword(email: String): Result<Unit> {
+        return try {
+            auth.sendPasswordResetEmail(email).await()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun updateDeliveryInfo(phone: String, governorate: String, address: String): Result<Unit> {
+        val uid = auth.currentUser?.uid ?: return Result.failure(Exception("Unauthorized"))
+        return try {
+            firestore.collection("users").document(uid).update(
+                mapOf(
+                    "phone" to phone,
+                    "governorate" to governorate,
+                    "address" to address
+                )
+            ).await()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
 }

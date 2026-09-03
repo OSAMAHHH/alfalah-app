@@ -1,66 +1,40 @@
 import re
-
-with open("app/src/main/java/com/example/alfalah/ui/screens/guide/GuideScreen.kt", "r", encoding="utf-8") as f:
+with open("app/src/main/java/com/example/alfalah/ui/screens/guide/GuideScreen.kt", "r") as f:
     content = f.read()
 
-# I will replace the Scaffold body completely
-# Scaffold( ... ) { padding -> ... }
-
-# Find the start of { padding ->
-start_idx = content.find(") { padding ->")
-end_idx = content.find("}\n\n@Composable\nfun CropCard(crop: Crop)")
-
-if start_idx != -1 and end_idx != -1:
-    new_body = """) { padding ->
-        if (isLoading) {
-            com.example.alfalah.ui.components.LoadingState(modifier = Modifier.padding(padding))
-        } else if (items.isEmpty()) {
-            if (category == "irrigation") {
-                com.example.alfalah.ui.components.EmptyState(
-                    icon = Icons.Filled.WaterDrop,
-                    title = "قريباً",
-                    message = "سيتم إضافة دليل الري قريباً",
-                    modifier = Modifier.padding(padding)
-                )
-            } else {
-                com.example.alfalah.ui.components.EmptyState(
-                    icon = Icons.Filled.Eco,
-                    title = "لا توجد بيانات",
-                    message = errorMsg ?: "لا توجد بيانات متاحة حالياً، يرجى التأكد من اتصالك بالإنترنت.",
-                    modifier = Modifier.padding(padding)
-                )
-            }
-        } else {
-            LazyColumn(
-                modifier = Modifier.fillMaxSize().padding(padding),
-                contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                items(items.size) { index ->
-                    val item = items[index]
-                    when (item) {
-                        is Crop -> CropCard(item as Crop)
-                        is AgriculturalProblem -> ProblemCard(item as AgriculturalProblem)
-                    }
-                    
-                    if (index == items.size - 1 && hasMore && !isLoadingMore) {
-                        LaunchedEffect(index) {
-                            loadData(true)
-                        }
-                    }
+old_logic = """
+            val matchesFilter = if (selectedFilter == "الكل") true else {
+                val englishFilter = when (selectedFilter) {
+                    "الأمراض" -> "disease"
+                    "الآفات" -> "pest"
+                    "نقص العناصر الغذائية" -> "deficiency"
+                    "مشاكل أخرى" -> "other"
+                    else -> selectedFilter
                 }
-                
-                if (isLoadingMore) {
-                    item {
-                        Box(modifier = Modifier.fillMaxWidth().padding(16.dp), contentAlignment = Alignment.Center) {
-                            CircularProgressIndicator(modifier = Modifier.size(32.dp), color = MaterialTheme.colorScheme.primary)
-                        }
-                    }
+                when (item) {
+                    is AgriculturalProblem -> item.type == englishFilter
+                    else -> true
                 }
             }
-        }
-    """
-    content = content[:start_idx] + new_body + content[end_idx:]
+"""
 
-    with open("app/src/main/java/com/example/alfalah/ui/screens/guide/GuideScreen.kt", "w", encoding="utf-8") as f:
-        f.write(content)
+new_logic = """
+            val matchesFilter = if (selectedFilter == "الكل") true else {
+                val englishFilter = when (selectedFilter) {
+                    "الأمراض" -> listOf("disease", "أمراض", "مرض")
+                    "الآفات" -> listOf("pest", "آفات", "آفة")
+                    "نقص العناصر الغذائية" -> listOf("deficiency", "nutrient_deficiency", "نقص")
+                    "مشاكل أخرى" -> listOf("other", "irrigation_problem", "soil_problem", "أخرى")
+                    else -> listOf(selectedFilter)
+                }
+                when (item) {
+                    is AgriculturalProblem -> englishFilter.any { item.type.equals(it, ignoreCase = true) } || englishFilter.any { item.type.contains(it, ignoreCase = true) }
+                    else -> true
+                }
+            }
+"""
+
+content = content.replace(old_logic.strip(), new_logic.strip())
+
+with open("app/src/main/java/com/example/alfalah/ui/screens/guide/GuideScreen.kt", "w") as f:
+    f.write(content)

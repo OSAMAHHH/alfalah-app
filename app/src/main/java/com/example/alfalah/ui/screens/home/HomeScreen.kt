@@ -1,9 +1,15 @@
 package com.example.alfalah.ui.screens.home
 
-import androidx.compose.animation.AnimatedVisibility
+import android.Manifest
+import android.content.pm.PackageManager
+import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -11,11 +17,11 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowForward
 import androidx.compose.material.icons.automirrored.outlined.Logout
-import androidx.compose.material.icons.filled.Eco
-import androidx.compose.material.icons.filled.WaterDrop
-import androidx.compose.material.icons.filled.WbSunny
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.AdminPanelSettings
 import androidx.compose.material.icons.outlined.BugReport
+import androidx.compose.material.icons.outlined.Search
+import androidx.compose.material.icons.outlined.ShoppingCart
 import androidx.compose.material.icons.outlined.SmartToy
 import androidx.compose.material.icons.outlined.Storefront
 import androidx.compose.material3.*
@@ -26,92 +32,138 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.example.alfalah.data.repository.AuthRepository
-import com.example.alfalah.data.repository.WeatherRepository
-import com.example.alfalah.data.repository.WeatherInfo
-import androidx.compose.material.icons.filled.Cloud
-import androidx.compose.material.icons.filled.CloudQueue
-import androidx.compose.material.icons.filled.Thunderstorm
-import androidx.compose.material.icons.filled.NightsStay
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-
-import android.Manifest
-import android.content.pm.PackageManager
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.ui.platform.LocalContext
 import androidx.core.content.ContextCompat
+import com.example.alfalah.data.model.Crop
+import com.example.alfalah.data.model.Product
+import com.example.alfalah.data.repository.AuthRepository
+import com.example.alfalah.data.repository.FirestoreRepository
+import com.example.alfalah.data.repository.UserServicesRepository
+import com.example.alfalah.data.repository.WeatherInfo
+import com.example.alfalah.data.repository.WeatherRepository
 import com.google.android.gms.location.LocationServices
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
     authRepository: AuthRepository,
-    weatherRepository: WeatherRepository = androidx.compose.runtime.remember { WeatherRepository() },
+    weatherRepository: WeatherRepository = remember { WeatherRepository() },
+    userServicesRepository: UserServicesRepository = remember { UserServicesRepository() },
+    firestoreRepository: FirestoreRepository = remember { FirestoreRepository() },
     onNavigateToStore: () -> Unit,
     onNavigateToChat: () -> Unit,
     onNavigateToAdmin: () -> Unit,
     onNavigateToGuide: (String) -> Unit,
+    onNavigateToProduct: (String) -> Unit = {},
+    onNavigateToCart: () -> Unit = {},
+    onNavigateToCrop: (String) -> Unit = {},
+    onNavigateToMyCrops: () -> Unit = {},
     onLogout: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val currentUser by authRepository.currentUser.collectAsState()
     val scope = rememberCoroutineScope()
     var weather by remember { mutableStateOf<WeatherInfo?>(null) }
+    var weatherLoading by remember { mutableStateOf(true) }
+    var locationError by remember { mutableStateOf<String?>(null) }
+
+    var myCrops by remember { mutableStateOf<List<Crop>>(emptyList()) }
+    var myCropsLoading by remember { mutableStateOf(true) }
     
-    
+    var featuredProducts by remember { mutableStateOf<List<Product>>(emptyList()) }
+    var productsLoading by remember { mutableStateOf(true) }
+
     val context = LocalContext.current
     val fusedLocationClient = remember { LocationServices.getFusedLocationProviderClient(context) }
-    var locationError by remember { mutableStateOf<String?>(null) }
-    
-    val locationPermissionLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestPermission()
-    ) { isGranted ->
-        if (isGranted) {
+
+    fun fetchWeather() {
+        weatherLoading = true
+        locationError = null
+        if (ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED || ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
             try {
-                fusedLocationClient.lastLocation.addOnSuccessListener { location ->
+                fusedLocationClient.getCurrentLocation(com.google.android.gms.location.Priority.PRIORITY_BALANCED_POWER_ACCURACY, null).addOnSuccessListener { location ->
                     if (location != null) {
                         scope.launch {
                             weather = weatherRepository.getCurrentWeather(location.latitude, location.longitude).getOrNull()
+                            if (weather == null) locationError = "فشل في جلب بيانات الطقس"
+                            weatherLoading = false
                         }
                     } else {
-                        locationError = "تعذر تحديد الموقع الجغرافي."
+                        // Fallback to lastLocation if getCurrentLocation is null
+                        fusedLocationClient.lastLocation.addOnSuccessListener { lastLoc ->
+                            if (lastLoc != null) {
+                                scope.launch {
+                                    weather = weatherRepository.getCurrentWeather(lastLoc.latitude, lastLoc.longitude).getOrNull()
+                                    if (weather == null) locationError = "فشل في جلب بيانات الطقس"
+                                    weatherLoading = false
+                                }
+                            } else {
+                                locationError = "تعذر تحديد الموقع الجغرافي. تأكد من تفعيل الـ GPS."
+                                weatherLoading = false
+                            }
+                        }.addOnFailureListener {
+                            locationError = "تعذر تحديد الموقع الجغرافي."
+                            weatherLoading = false
+                        }
                     }
+                }.addOnFailureListener {
+                    locationError = "فشل في الحصول على الموقع."
+                    weatherLoading = false
                 }
             } catch(e: SecurityException) {
                 locationError = "تم رفض إذن الموقع."
+                weatherLoading = false
             }
         } else {
-            locationError = "تم رفض إذن الموقع. نعرض لك طقس غير دقيق."
-            scope.launch {
-                weather = weatherRepository.getCurrentWeather(24.7136, 46.6753).getOrNull()
-            }
+            locationError = "تحتاج لتفعيل صلاحية الموقع لعرض الطقس"
+            weatherLoading = false
         }
+    }
+
+    val locationPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        fetchWeather()
     }
 
     LaunchedEffect(Unit) {
         if (ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
-            try {
-                fusedLocationClient.lastLocation.addOnSuccessListener { location ->
-                    if (location != null) {
-                        scope.launch {
-                            weather = weatherRepository.getCurrentWeather(location.latitude, location.longitude).getOrNull()
-                        }
-                    } else {
-                        locationError = "تعذر تحديد الموقع الجغرافي."
-                    }
-                }
-            } catch(e: SecurityException) {
-                locationError = "تم رفض إذن الموقع."
-            }
+            fetchWeather()
         } else {
             locationPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
         }
+        
+        // Fetch My Crops
+        scope.launch {
+            if (currentUser != null) {
+                val cropsList = userServicesRepository.getMyCrops()
+                if (true) {
+                    val ids = cropsList.map { it.cropId }
+                    if (ids.isNotEmpty()) {
+                        // For simplicity, just get top 3
+                        val list = mutableListOf<Crop>()
+                        for (id in ids.take(3)) {
+                            firestoreRepository.getCropById(id).getOrNull()?.let { list.add(it) }
+                        }
+                        myCrops = list
+                    }
+                }
+            }
+            myCropsLoading = false
+        }
+        
+        // Fetch Products
+        scope.launch {
+            val res = firestoreRepository.getProducts()
+            if (res.isSuccess) {
+                featuredProducts = res.getOrDefault(emptyList()).take(5)
+            }
+            productsLoading = false
+        }
     }
-
 
     Scaffold(containerColor = MaterialTheme.colorScheme.background) { padding ->
         Column(
@@ -137,37 +189,39 @@ fun HomeScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Column {
-                        Text("مرحباً بك،", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
-                        Text(currentUser?.name ?: "مزارعنا الكريم (زائر)", style = MaterialTheme.typography.headlineMedium, color = MaterialTheme.colorScheme.onBackground)
+                        val name = currentUser?.name?.split(" ")?.firstOrNull() ?: "مزارعنا الكريم"
+                        Text("مرحباً، $name 👋", style = MaterialTheme.typography.headlineMedium, color = MaterialTheme.colorScheme.onBackground)
                     }
                     if (currentUser != null) {
-                        IconButton(
-                            onClick = { authRepository.logout(); onLogout() },
-                            modifier = Modifier.background(MaterialTheme.colorScheme.surface, CircleShape).size(48.dp)
-                        ) {
-                            Icon(Icons.AutoMirrored.Outlined.Logout, contentDescription = "خروج", tint = MaterialTheme.colorScheme.primary)
+                        Row {
+                            IconButton(
+                                onClick = onNavigateToCart,
+                                modifier = Modifier.background(MaterialTheme.colorScheme.surface, CircleShape).size(48.dp)
+                            ) {
+                                Icon(Icons.Outlined.ShoppingCart, contentDescription = "السلة", tint = MaterialTheme.colorScheme.primary)
+                            }
+                            Spacer(modifier = Modifier.width(8.dp))
+                            IconButton(
+                                onClick = { authRepository.logout(); onLogout() },
+                                modifier = Modifier.background(MaterialTheme.colorScheme.surface, CircleShape).size(48.dp)
+                            ) {
+                                Icon(Icons.AutoMirrored.Outlined.Logout, contentDescription = "خروج", tint = MaterialTheme.colorScheme.primary)
+                            }
                         }
                     } else {
-                        Button(onClick = onLogout, shape = RoundedCornerShape(12.dp)) {
-                            Text("تسجيل الدخول")
+                        IconButton(
+                            onClick = onLogout,
+                            modifier = Modifier.background(MaterialTheme.colorScheme.surface, CircleShape).size(48.dp)
+                        ) {
+                            Icon(Icons.Filled.Person, contentDescription = "تسجيل الدخول", tint = MaterialTheme.colorScheme.primary)
                         }
                     }
                 }
             }
 
-            // Weather Widget
-            
-            if (locationError != null && weather == null) {
-                Text(
-                    text = locationError!!,
-                    color = MaterialTheme.colorScheme.error,
-                    style = MaterialTheme.typography.bodySmall,
-                    modifier = Modifier.padding(horizontal = 24.dp)
-                )
-                Spacer(modifier = Modifier.height(16.dp))
-            }
+            // Weather Card
             ElevatedCard(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp),
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp).offset(y = (-20).dp),
                 shape = RoundedCornerShape(24.dp),
                 colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surface),
                 elevation = CardDefaults.elevatedCardElevation(defaultElevation = 2.dp)
@@ -177,58 +231,168 @@ fun HomeScreen(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        val icon = when (weather?.code) {
-                            0 -> if (weather?.isDay == true) Icons.Filled.WbSunny else Icons.Filled.NightsStay
-                            in 1..3 -> Icons.Filled.CloudQueue
-                            in 45..48 -> Icons.Filled.Cloud
-                            in 51..65, in 80..82 -> Icons.Filled.WaterDrop
-                            in 71..75 -> Icons.Filled.Cloud
-                            in 95..99 -> Icons.Filled.Thunderstorm
-                            else -> Icons.Filled.WbSunny
+                    if (weatherLoading) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            CircularProgressIndicator(modifier = Modifier.size(24.dp))
+                            Spacer(modifier = Modifier.width(16.dp))
+                            Text("جاري جلب الطقس...", style = MaterialTheme.typography.bodyMedium)
                         }
-                        val iconTint = if (weather?.isDay != false && (weather?.code == 0 || weather?.code == null)) Color(0xFFF9A825) else MaterialTheme.colorScheme.primary
-                        Icon(icon, contentDescription = null, tint = iconTint, modifier = Modifier.size(40.dp))
-                        Spacer(modifier = Modifier.width(16.dp))
+                    } else if (locationError != null || weather == null) {
                         Column {
-                            Text(weather?.description ?: "جاري جلب الطقس...", style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onSurface)
-                            Text(if (weather != null) "${weather!!.city} - ${weather!!.temperature}°" else "الرجاء الانتظار", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(locationError ?: "تعذر جلب الطقس", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.error)
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Button(onClick = {
+                                if (ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+                                    locationPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
+                                } else {
+                                    fetchWeather()
+                                }
+                            }, contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp)) {
+                                Text("تحديث الطقس")
+                            }
+                        }
+                    } else {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            val icon = when (weather?.code) {
+                                0 -> if (weather?.isDay == true) Icons.Filled.WbSunny else Icons.Filled.NightsStay
+                                in 1..3 -> Icons.Filled.CloudQueue
+                                in 45..48 -> Icons.Filled.Cloud
+                                in 51..65, in 80..82 -> Icons.Filled.WaterDrop
+                                in 71..75 -> Icons.Filled.Cloud
+                                in 95..99 -> Icons.Filled.Thunderstorm
+                                else -> Icons.Filled.WbSunny
+                            }
+                            val iconTint = if (weather?.isDay != false && (weather?.code == 0 || weather?.code == null)) Color(0xFFF9A825) else MaterialTheme.colorScheme.primary
+                            Icon(icon, contentDescription = null, tint = iconTint, modifier = Modifier.size(40.dp))
+                            Spacer(modifier = Modifier.width(16.dp))
+                            Column {
+                                Text(weather?.description ?: "", style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onSurface)
+                                Text("${weather?.city ?: ""} - ${weather?.temperature ?: ""}°", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                        }
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // AI Assistant Card
+            Column(modifier = Modifier.padding(horizontal = 24.dp)) {
+                FeatureCard(
+                    title = "اسأل المساعد الزراعي",
+                    subtitle = "احصل على مساعدة حول محاصيلك ومشاكلك الزراعية",
+                    icon = Icons.Outlined.SmartToy,
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary,
+                    onClick = onNavigateToChat
+                )
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // Guide Shortcuts
+            Text("استكشف الدليل الزراعي", style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(horizontal = 24.dp), color = MaterialTheme.colorScheme.onBackground)
+            Spacer(modifier = Modifier.height(16.dp))
+            Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                SmallCategoryCard(title = "المحاصيل", icon = Icons.Filled.Eco, onClick = { onNavigateToGuide("crops") }, modifier = Modifier.weight(1f))
+                SmallCategoryCard(title = "الآفات والأمراض", icon = Icons.Outlined.BugReport, onClick = { onNavigateToGuide("pests") }, modifier = Modifier.weight(1f))
+                SmallCategoryCard(title = "البحث", icon = Icons.Outlined.Search, onClick = { onNavigateToGuide("search") }, modifier = Modifier.weight(1f))
+            }
+
+            Spacer(modifier = Modifier.height(32.dp))
+
+            // My Crops
+            Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                Text("محاصيلي", style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.onBackground)
+                if (myCrops.isNotEmpty()) {
+                    TextButton(onClick = { onNavigateToGuide("mycrops") }) {
+                        Text("عرض الكل")
+                    }
+                }
+            }
+            Spacer(modifier = Modifier.height(16.dp))
+            if (myCropsLoading) {
+                Box(modifier = Modifier.fillMaxWidth().height(100.dp), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator()
+                }
+            } else if (myCrops.isEmpty()) {
+                OutlinedCard(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp),
+                    colors = CardDefaults.outlinedCardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                ) {
+                    Column(modifier = Modifier.padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                        Icon(Icons.Filled.Eco, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(40.dp))
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text("أضف محاصيلك للحصول على تجربة زراعية أكثر تخصيصاً", style = MaterialTheme.typography.bodyMedium, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Button(onClick = { onNavigateToGuide("crops") }) {
+                            Text("تصفح المحاصيل")
+                        }
+                    }
+                }
+            } else {
+                LazyRow(
+                    contentPadding = PaddingValues(horizontal = 24.dp),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    items(myCrops) { crop ->
+                        ElevatedCard(
+                            onClick = { onNavigateToCrop(crop.id) },
+                            modifier = Modifier.width(140.dp).height(100.dp),
+                            colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surface)
+                        ) {
+                            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                Text(crop.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                            }
                         }
                     }
                 }
             }
 
             Spacer(modifier = Modifier.height(32.dp))
-            Text("الخدمات الأساسية", style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(horizontal = 24.dp), color = MaterialTheme.colorScheme.onBackground)
-            Spacer(modifier = Modifier.height(16.dp))
-            
-            Column(modifier = Modifier.padding(horizontal = 24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                FeatureCard(
-                    title = "اسأل الفلاح",
-                    subtitle = "مساعدك الذكي لتشخيص الأمراض واقتراح الحلول الفورية",
-                    icon = Icons.Outlined.SmartToy,
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor = MaterialTheme.colorScheme.onPrimary,
-                    onClick = onNavigateToChat
-                )
-                FeatureCard(
-                    title = "المتجر الزراعي",
-                    subtitle = "تسوق أفضل الأسمدة والمبيدات الموثوقة لمحصولك",
-                    icon = Icons.Outlined.Storefront,
-                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                    onClick = onNavigateToStore
-                )
-            }
 
-            Spacer(modifier = Modifier.height(32.dp))
-            Text("دليل المزارع", style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(horizontal = 24.dp), color = MaterialTheme.colorScheme.onBackground)
+            // Products
+            Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                Text("المتجر الزراعي", style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.onBackground)
+                if (featuredProducts.isNotEmpty()) {
+                    TextButton(onClick = onNavigateToStore) {
+                        Text("عرض المتجر")
+                    }
+                }
+            }
             Spacer(modifier = Modifier.height(16.dp))
-            
-            Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                SmallCategoryCard(title = "المحاصيل", icon = Icons.Filled.Eco, onClick = { onNavigateToGuide("crops") }, modifier = Modifier.weight(1f))
-                SmallCategoryCard(title = "الآفات", icon = Icons.Outlined.BugReport, onClick = { onNavigateToGuide("pests") }, modifier = Modifier.weight(1f))
-                SmallCategoryCard(title = "الري", icon = Icons.Filled.WaterDrop, onClick = { onNavigateToGuide("irrigation") }, modifier = Modifier.weight(1f))
+            if (productsLoading) {
+                Box(modifier = Modifier.fillMaxWidth().height(120.dp), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator()
+                }
+            } else if (featuredProducts.isEmpty()) {
+                OutlinedCard(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp),
+                    colors = CardDefaults.outlinedCardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                ) {
+                    Box(modifier = Modifier.fillMaxWidth().padding(16.dp), contentAlignment = Alignment.Center) {
+                        Text("لا توجد منتجات حالياً", style = MaterialTheme.typography.bodyMedium)
+                    }
+                }
+            } else {
+                LazyRow(
+                    contentPadding = PaddingValues(horizontal = 24.dp),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    items(featuredProducts) { product ->
+                        ElevatedCard(
+                            onClick = { onNavigateToProduct(product.id) },
+                            modifier = Modifier.width(160.dp),
+                            colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surface)
+                        ) {
+                            Column(modifier = Modifier.padding(12.dp)) {
+                                Text(product.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, maxLines = 1)
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text("${product.price} ${product.currency}", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary)
+                            }
+                        }
+                    }
+                }
             }
 
             if (currentUser?.role == "admin") {

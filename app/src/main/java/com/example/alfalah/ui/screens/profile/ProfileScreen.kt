@@ -4,9 +4,18 @@ import android.widget.Toast
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.Eco
+import androidx.compose.material.icons.filled.Chat
+import androidx.compose.material.icons.filled.ShoppingCart
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.foundation.clickable
+
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -27,7 +36,14 @@ import kotlinx.coroutines.launch
 @Composable
 fun ProfileScreen(
     authRepository: AuthRepository,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    onNavigateToFavorites: () -> Unit = {},
+    onNavigateToMyCrops: () -> Unit = {},
+    onNavigateToConversations: () -> Unit = {},
+    onNavigateToSettings: () -> Unit = {},
+    onNavigateToMyOrders: () -> Unit = {},
+    onNavigateToAdmin: () -> Unit = {},
+    onLogout: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -40,7 +56,7 @@ fun ProfileScreen(
 
     LaunchedEffect(currentUser) {
         if (!isSaving && currentUser != null) {
-            name = currentUser!!.name
+            name = currentUser?.name ?: ""
         }
     }
 
@@ -71,7 +87,10 @@ fun ProfileScreen(
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(paddingValues)
-                        .padding(16.dp),
+                        .verticalScroll(rememberScrollState())
+                        
+                        .padding(16.dp)
+                        ,
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
@@ -172,8 +191,40 @@ fun ProfileScreen(
                             Text("حفظ التعديلات", style = MaterialTheme.typography.titleMedium)
                         }
                     }
+                    Spacer(modifier = Modifier.height(32.dp))
+                    
+                    ProfileMenuItem(icon = Icons.Filled.Favorite, title = "المفضلة", onClick = onNavigateToFavorites)
+                    ProfileMenuItem(icon = Icons.Filled.Eco, title = "محاصيلي", onClick = onNavigateToMyCrops)
+                    ProfileMenuItem(icon = Icons.Filled.ShoppingCart, title = "طلباتي", onClick = onNavigateToMyOrders)
+                    ProfileMenuItem(icon = Icons.Filled.Chat, title = "محادثاتي السابقة", onClick = onNavigateToConversations)
+                    ProfileMenuItem(icon = Icons.Filled.Settings, title = "الإعدادات", onClick = onNavigateToSettings)
+                    if (currentUser?.role == "admin") {
+                        ProfileMenuItem(icon = androidx.compose.material.icons.Icons.Filled.Person, title = "لوحة تحكم المشرف", onClick = onNavigateToAdmin)
+                    }
+                    ProfileMenuItem(icon = androidx.compose.material.icons.Icons.Filled.Person, title = "تسجيل الخروج", onClick = onLogout)
+
                 }
             }
+        }
+    }
+}
+
+
+@Composable
+fun ProfileMenuItem(icon: androidx.compose.ui.graphics.vector.ImageVector, title: String, onClick: () -> Unit) {
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onClick() },
+        color = androidx.compose.ui.graphics.Color.Transparent
+    ) {
+        Row(
+            modifier = Modifier.padding(vertical = 12.dp, horizontal = 8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+            Spacer(modifier = Modifier.width(16.dp))
+            Text(title, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onBackground)
         }
     }
 }

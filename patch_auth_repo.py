@@ -1,24 +1,25 @@
-with open("app/src/main/java/com/example/alfalah/data/repository/AuthRepository.kt", "r", encoding="utf-8") as f:
+import re
+with open("app/src/main/java/com/example/alfalah/data/repository/AuthRepository.kt", "r") as f:
     content = f.read()
 
-update_func = """
-    suspend fun updateUserName(newName: String): Result<Unit> {
-        val user = auth.currentUser ?: return Result.failure(Exception("غير مسجل الدخول"))
+functions = """
+    suspend fun updateDeliveryInfo(phone: String, governorate: String, address: String): Result<Unit> {
+        val uid = auth.currentUser?.uid ?: return Result.failure(Exception("Unauthorized"))
         return try {
-            firestore.collection("users").document(user.uid)
-                .update("name", newName).await()
-            
-            // Update local state directly to reflect immediately
-            _currentUser.value = _currentUser.value?.copy(name = newName)
+            firestore.collection("users").document(uid).update(
+                mapOf(
+                    "phone" to phone,
+                    "governorate" to governorate,
+                    "address" to address
+                )
+            ).await()
             Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e)
         }
     }
+"""
 
-    fun logout() {"""
-
-content = content.replace("    fun logout() {", update_func)
-
-with open("app/src/main/java/com/example/alfalah/data/repository/AuthRepository.kt", "w", encoding="utf-8") as f:
+content = re.sub(r'}\s*$', functions + '\n}', content)
+with open("app/src/main/java/com/example/alfalah/data/repository/AuthRepository.kt", "w") as f:
     f.write(content)

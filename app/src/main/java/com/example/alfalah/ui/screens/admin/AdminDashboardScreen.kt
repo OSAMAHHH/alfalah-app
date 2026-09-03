@@ -40,7 +40,7 @@ fun AdminDashboardScreen(
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
     var selectedTab by remember { mutableIntStateOf(0) }
-    val tabs = listOf("المنتجات", "المحاصيل", "المشاكل")
+    val tabs = listOf("المنتجات", "المحاصيل", "المشاكل", "الطلبات")
     
     var products by remember { mutableStateOf<List<Product>>(emptyList()) }
     var crops by remember { mutableStateOf<List<Crop>>(emptyList()) }
@@ -124,22 +124,20 @@ fun AdminDashboardScreen(
                 .padding(padding)
         ) {
             if (isLoading) {
-                CircularProgressIndicator(
-                    modifier = Modifier.align(Alignment.Center),
-                    color = MaterialTheme.colorScheme.primary
-                )
+                com.example.alfalah.ui.components.LoadingState()
             } else {
                 when (selectedTab) {
                     0 -> ProductsList(products, { p -> showProductDialog = p; isAdding = false }, { p -> scope.launch { firestoreRepository.deleteProduct(p.id); loadData() } })
                     1 -> CropsList(crops, { c -> showCropDialog = c; isAdding = false }, { c -> cropToDelete = c })
                     2 -> ProblemsList(problems, crops, { pr -> showProblemDialog = pr; isAdding = false }, { pr -> problemToDelete = pr })
+                    3 -> AdminOrdersScreen()
                 }
             }
         }
 
         if (showProductDialog != null) {
             ProductDialog(
-                product = showProductDialog!!,
+                product = showProductDialog ?: Product(),
                 isAdding = isAdding,
                 onDismiss = { showProductDialog = null },
                 onSave = { p ->
@@ -155,7 +153,7 @@ fun AdminDashboardScreen(
         
         if (showCropDialog != null) {
             CropDialog(
-                crop = showCropDialog!!,
+                crop = showCropDialog ?: Crop(),
                 isAdding = isAdding,
                 onDismiss = { showCropDialog = null },
                 onSave = { c ->
@@ -172,7 +170,7 @@ fun AdminDashboardScreen(
 
         if (showProblemDialog != null) {
             ProblemDialog(
-                problem = showProblemDialog!!,
+                problem = showProblemDialog ?: AgriculturalProblem(),
                 crops = crops,
                 products = products,
                 isAdding = isAdding,
@@ -193,13 +191,13 @@ fun AdminDashboardScreen(
             AlertDialog(
                 onDismissRequest = { cropToDelete = null },
                 title = { Text("تأكيد الحذف") },
-                text = { Text("هل أنت متأكد أنك تريد حذف المحصول '${cropToDelete!!.name}'؟") },
+                text = { Text("هل أنت متأكد أنك تريد حذف المحصول '${cropToDelete ?: Crop().name}'؟") },
                 confirmButton = {
                     Button(
                         onClick = { 
                             scope.launch {
                                 isLoading = true
-                                val r = firestoreRepository.deleteCrop(cropToDelete!!.id)
+                                val r = firestoreRepository.deleteCrop(cropToDelete?.id ?: "")
                                 if (r.isFailure) android.widget.Toast.makeText(context, r.exceptionOrNull()?.message ?: "Error", android.widget.Toast.LENGTH_LONG).show()
                                 else android.widget.Toast.makeText(context, "تم الحذف بنجاح", android.widget.Toast.LENGTH_SHORT).show()
                                 cropToDelete = null
@@ -217,13 +215,13 @@ fun AdminDashboardScreen(
             AlertDialog(
                 onDismissRequest = { problemToDelete = null },
                 title = { Text("تأكيد الحذف") },
-                text = { Text("هل أنت متأكد أنك تريد حذف المشكلة '${problemToDelete!!.name}'؟") },
+                text = { Text("هل أنت متأكد أنك تريد حذف المشكلة '${problemToDelete ?: AgriculturalProblem().name}'؟") },
                 confirmButton = {
                     Button(
                         onClick = { 
                             scope.launch {
                                 isLoading = true
-                                val r = firestoreRepository.deleteProblem(problemToDelete!!.id)
+                                val r = firestoreRepository.deleteProblem(problemToDelete?.id ?: "")
                                 if (r.isFailure) android.widget.Toast.makeText(context, r.exceptionOrNull()?.message ?: "Error", android.widget.Toast.LENGTH_LONG).show()
                                 else android.widget.Toast.makeText(context, "تم الحذف بنجاح", android.widget.Toast.LENGTH_SHORT).show()
                                 problemToDelete = null

@@ -127,7 +127,7 @@ fun ImportDatabaseScreen(onBack: () -> Unit) {
                         coroutineScope.launch {
                             try {
                                 val content = withContext(Dispatchers.IO) {
-                                    context.contentResolver.openInputStream(selectedUri!!)?.use { inputStream ->
+                                    context.contentResolver.openInputStream(selectedUri ?: throw Exception("URI is null"))?.use { inputStream ->
                                         BufferedReader(InputStreamReader(inputStream)).readText()
                                     }
                                 }
@@ -247,7 +247,7 @@ fun ImportDatabaseScreen(onBack: () -> Unit) {
                             try {
                                 val batch = db.batch()
                                 
-                                val crops = parsedJson!!.getJSONArray("crops")
+                                val crops = (parsedJson ?: throw Exception("JSON is null")).getJSONArray("crops")
                                 for (i in 0 until crops.length()) {
                                     val cropJson = crops.getJSONObject(i)
                                     val id = cropJson.getString("id")
@@ -272,7 +272,7 @@ fun ImportDatabaseScreen(onBack: () -> Unit) {
                                     batch.set(db.collection("crops").document(id), map, SetOptions.merge())
                                 }
                                 
-                                val problems = parsedJson!!.getJSONArray("agricultural_problems")
+                                val problems = (parsedJson ?: throw Exception("JSON is null")).getJSONArray("agricultural_problems")
                                 for (i in 0 until problems.length()) {
                                     val probJson = problems.getJSONObject(i)
                                     val id = probJson.getString("id")

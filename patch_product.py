@@ -1,106 +1,85 @@
 import re
 
-with open("app/src/main/java/com/example/alfalah/ui/screens/admin/AdminDashboardScreen.kt", "r") as f:
-    text = f.read()
+with open("app/src/main/java/com/example/alfalah/ui/screens/store/ProductDetailsScreen.kt", "r", encoding="utf-8") as f:
+    content = f.read()
 
-# Add necessary imports
-text = text.replace("import androidx.compose.ui.platform.LocalContext", "import androidx.compose.ui.platform.LocalContext\nimport com.example.alfalah.data.repository.FirestoreRepository\nimport kotlinx.coroutines.launch")
-
-old_dialog = re.search(r'@Composable\s*fun ProductDialog\(product: Product, isAdding: Boolean, onDismiss: \(\) -> Unit, onSave: \(Product\) -> Unit\) \{[\s\S]*?(?=@Composable\s*fun CropDialog)', text).group(0)
-
-new_dialog = """@Composable
-fun ProductDialog(product: Product, isAdding: Boolean, onDismiss: () -> Unit, onSave: (Product) -> Unit) {
-    val context = LocalContext.current
-    val scope = rememberCoroutineScope()
-    val firestoreRepo = remember { FirestoreRepository() }
-    
-    var name by remember { mutableStateOf(product.name) }
-    var priceStr by remember { mutableStateOf(if (product.price == 0.0) "" else product.price.toString()) }
-    var description by remember { mutableStateOf(product.description) }
-    var usage by remember { mutableStateOf(product.usage) }
-    var warnings by remember { mutableStateOf(product.warnings) }
-    var category by remember { mutableStateOf(product.category) }
-    var currency by remember { mutableStateOf(product.currency.ifEmpty { "SAR" }) }
-    var imageUrl by remember { mutableStateOf(product.imageUrl) }
-    var isUploading by remember { mutableStateOf(false) }
-    
-    var expandedCurrency by remember { mutableStateOf(false) }
-    
-    val imagePickerLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.PickVisualMedia(),
-        onResult = { uri: android.net.Uri? ->
-            if (uri != null) {
-                isUploading = true
-                scope.launch {
-                    val result = firestoreRepo.uploadImage(uri)
-                    isUploading = false
-                    if (result.isSuccess) {
-                        imageUrl = result.getOrNull() ?: ""
-                    }
-                }
-            }
-        }
-    )
-    
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(if (isAdding) "إضافة منتج جديد" else "تعديل منتج", fontWeight = FontWeight.Bold) },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.verticalScroll(rememberScrollState())) {
-                OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("اسم المنتج") }, modifier = Modifier.fillMaxWidth())
-                OutlinedTextField(value = description, onValueChange = { description = it }, label = { Text("الوصف") }, modifier = Modifier.fillMaxWidth())
-                
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedTextField(value = priceStr, onValueChange = { priceStr = it }, label = { Text("السعر") }, modifier = Modifier.weight(1f))
-                    ExposedDropdownMenuBox(expanded = expandedCurrency, onExpandedChange = { expandedCurrency = it }, modifier = Modifier.weight(1f)) {
-                        OutlinedTextField(value = currency, onValueChange = {}, readOnly = true, label = { Text("العملة") }, trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expandedCurrency) }, modifier = Modifier.menuAnchor())
-                        ExposedDropdownMenu(expanded = expandedCurrency, onDismissRequest = { expandedCurrency = false }) {
-                            listOf("SAR", "USD", "EGP", "AED").forEach { cur ->
-                                DropdownMenuItem(text = { Text(cur) }, onClick = { currency = cur; expandedCurrency = false })
-                            }
-                        }
-                    }
-                }
-                
-                OutlinedTextField(value = category, onValueChange = { category = it }, label = { Text("التصنيف") }, modifier = Modifier.fillMaxWidth())
-                OutlinedTextField(value = usage, onValueChange = { usage = it }, label = { Text("طريقة الاستخدام") }, modifier = Modifier.fillMaxWidth())
-                OutlinedTextField(value = warnings, onValueChange = { warnings = it }, label = { Text("التحذيرات") }, modifier = Modifier.fillMaxWidth())
-                
-                Button(
-                    onClick = { imagePickerLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) },
-                    modifier = Modifier.fillMaxWidth(),
-                    enabled = !isUploading
-                ) {
-                    Text(if (isUploading) "جاري الرفع..." else "اختيار صورة")
-                }
-                
-                if (imageUrl.isNotEmpty()) {
-                    Text("تم رفع الصورة بنجاح", color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.labelMedium)
-                }
-            }
-        },
-        confirmButton = {
-            Button(onClick = {
-                onSave(product.copy(
-                    name = name,
-                    price = priceStr.toDoubleOrNull() ?: 0.0,
-                    description = description,
-                    usage = usage,
-                    warnings = warnings,
-                    category = category,
-                    currency = currency,
-                    imageUrl = imageUrl
-                ))
-            }, enabled = !isUploading) { Text("حفظ") }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) { Text("إلغاء") }
-        }
-    )
-}
+imports = """
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.outlined.FavoriteBorder
+import com.example.alfalah.data.repository.UserServicesRepository
+import kotlinx.coroutines.launch
+import androidx.compose.ui.platform.LocalContext
+import android.widget.Toast
 """
 
-text = text.replace(old_dialog, new_dialog)
+content = content.replace("import com.example.alfalah.ui.components.LoadingState", "import com.example.alfalah.ui.components.LoadingState" + imports)
 
-with open("app/src/main/java/com/example/alfalah/ui/screens/admin/AdminDashboardScreen.kt", "w") as f:
-    f.write(text)
+# Add UserServicesRepository to parameters
+content = content.replace("firestoreRepository: FirestoreRepository = remember { FirestoreRepository() }", 
+                          "firestoreRepository: FirestoreRepository = remember { FirestoreRepository() },\n    userServicesRepository: UserServicesRepository = remember { UserServicesRepository() }")
+
+# Add state and coroutine scope
+state_code = """
+    var product by remember { mutableStateOf<Product?>(null) }
+    var isLoading by remember { mutableStateOf(true) }
+    var isFavorite by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
+    val context = LocalContext.current
+"""
+content = content.replace("    var product by remember { mutableStateOf<Product?>(null) }\n    var isLoading by remember { mutableStateOf(true) }", state_code)
+
+# Check favorite on load
+effect_code = """
+    LaunchedEffect(productId) {
+        val result = firestoreRepository.getProductById(productId)
+        if (result.isSuccess) product = result.getOrNull()
+        isFavorite = userServicesRepository.isFavorite(productId)
+        isLoading = false
+    }
+"""
+content = content.replace("""    LaunchedEffect(productId) {
+        val result = firestoreRepository.getProductById(productId)
+        if (result.isSuccess) product = result.getOrNull()
+        isLoading = false
+    }""", effect_code)
+
+# Update TopAppBar to add actions
+top_bar_old = """
+                navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = "رجوع") } },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = androidx.compose.ui.graphics.Color.Transparent)
+"""
+top_bar_new = """
+                navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = "رجوع") } },
+                actions = {
+                    if (product != null) {
+                        IconButton(onClick = {
+                            scope.launch {
+                                if (isFavorite) {
+                                    val res = userServicesRepository.removeFavorite(productId)
+                                    if (res.isSuccess) {
+                                        isFavorite = false
+                                        Toast.makeText(context, "تمت الإزالة من المفضلة", Toast.LENGTH_SHORT).show()
+                                    }
+                                } else {
+                                    val res = userServicesRepository.addFavorite(productId, "product")
+                                    if (res.isSuccess) {
+                                        isFavorite = true
+                                        Toast.makeText(context, "تمت الإضافة للمفضلة", Toast.LENGTH_SHORT).show()
+                                    }
+                                }
+                            }
+                        }) {
+                            Icon(
+                                imageVector = if (isFavorite) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
+                                contentDescription = "المفضلة",
+                                tint = if (isFavorite) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                            )
+                        }
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = androidx.compose.ui.graphics.Color.Transparent)
+"""
+content = content.replace(top_bar_old, top_bar_new)
+
+with open("app/src/main/java/com/example/alfalah/ui/screens/store/ProductDetailsScreen.kt", "w", encoding="utf-8") as f:
+    f.write(content)

@@ -1,241 +1,160 @@
 package com.example.alfalah.ui.navigation
 
-import androidx.compose.animation.*
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.SmartToy
-import androidx.compose.material.icons.filled.Store
-import androidx.compose.material.icons.outlined.Home
-import androidx.compose.material.icons.outlined.SmartToy
-import androidx.compose.material.icons.outlined.Store
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
-import androidx.navigation.NavDestination.Companion.hierarchy
-import androidx.navigation.NavGraph.Companion.findStartDestination
-import androidx.navigation.compose.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
 import com.example.alfalah.data.repository.AuthRepository
-import com.example.alfalah.ui.screens.admin.AdminDashboardScreen
 import com.example.alfalah.ui.screens.auth.LoginScreen
 import com.example.alfalah.ui.screens.auth.RegisterScreen
-import com.example.alfalah.ui.screens.auth.WelcomeScreen
-import com.example.alfalah.ui.screens.profile.ProfileScreen
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.outlined.Person
+import com.example.alfalah.ui.screens.chat.ConversationsScreen
 import com.example.alfalah.ui.screens.chat.ChatScreen
-import com.example.alfalah.ui.screens.home.HomeScreen
 import com.example.alfalah.ui.screens.guide.GuideScreen
+import com.example.alfalah.ui.screens.guide.CropDetailsScreen
+import com.example.alfalah.ui.screens.guide.ProblemDetailsScreen
+import com.example.alfalah.ui.screens.profile.ProfileScreen
+import com.example.alfalah.ui.screens.profile.FavoritesScreen
+import com.example.alfalah.ui.screens.profile.MyOrdersScreen
+import com.example.alfalah.ui.screens.store.CheckoutScreen
 import com.example.alfalah.ui.screens.store.ProductDetailsScreen
-import com.example.alfalah.ui.screens.store.StoreScreen
-import com.google.firebase.auth.FirebaseAuth
-
-object Routes {
-    const val WELCOME = "welcome"
-    const val LOGIN = "login"
-    const val REGISTER = "register"
-    const val HOME = "home"
-    const val STORE = "store"
-    const val CHAT = "chat"
-    const val GUIDE = "guide/{category}"
-    fun guide(category: String) = "guide/$category"
-    const val PROFILE = "profile"
-    const val ADMIN_DASHBOARD = "admin_dashboard"
-    val IMPORT_DB = "import_db"
-    const val PRODUCT_DETAILS = "product_details/{productId}"
-    fun productDetails(id: String) = "product_details/$id"
-}
-
-data class BottomNavItem(
-    val route: String,
-    val title: String,
-    val selectedIcon: androidx.compose.ui.graphics.vector.ImageVector,
-    val unselectedIcon: androidx.compose.ui.graphics.vector.ImageVector
-)
-
-val bottomNavItems = listOf(
-    BottomNavItem(Routes.HOME, "الرئيسية", Icons.Filled.Home, Icons.Outlined.Home),
-    BottomNavItem(Routes.STORE, "المتجر", Icons.Filled.Store, Icons.Outlined.Store),
-    BottomNavItem(Routes.CHAT, "المساعد", Icons.Filled.SmartToy, Icons.Outlined.SmartToy),
-    BottomNavItem(Routes.PROFILE, "حسابي", Icons.Filled.Person, Icons.Outlined.Person)
-)
+import com.example.alfalah.ui.screens.admin.AdminDashboardScreen
+import com.example.alfalah.ui.screens.admin.AdminOrdersScreen
+import com.example.alfalah.ui.screens.admin.ImportDatabaseScreen
 
 @Composable
-fun AppNavigation(authRepository: AuthRepository = AuthRepository()) {
+fun AppNavigation() {
     val navController = rememberNavController()
-    val navBackStackEntry by navController.currentBackStackEntryAsState()
-    val currentDestination = navBackStackEntry?.destination
-    val currentRoute = currentDestination?.route
+    val authRepository = remember { AuthRepository() }
 
-    val showBottomBar = currentRoute in listOf(Routes.HOME, Routes.STORE, Routes.CHAT, Routes.PROFILE)
+    val startDestination = if (authRepository.currentUser.value != null) "guide" else "login"
 
-    // Evaluate startDestination exactly once when the NavHost is created.
-    // This prevents the NavHost from rebuilding/flickering when AuthRepository finishes fetching from Firestore.
-    val startDestination = remember {
-        if (FirebaseAuth.getInstance().currentUser != null) Routes.HOME else Routes.WELCOME
-    }
-
-    Scaffold(
-        bottomBar = {
-            AnimatedVisibility(
-                visible = showBottomBar,
-                enter = slideInVertically(initialOffsetY = { it }),
-                exit = slideOutVertically(targetOffsetY = { it })
-            ) {
-                Surface(
-                    modifier = Modifier
-                        .padding(start = 24.dp, end = 24.dp, bottom = 24.dp)
-                        .fillMaxWidth(),
-                    shape = RoundedCornerShape(32.dp),
-                    shadowElevation = 16.dp,
-                    color = MaterialTheme.colorScheme.surface
-                ) {
-                    NavigationBar(
-                        containerColor = androidx.compose.ui.graphics.Color.Transparent,
-                        tonalElevation = 0.dp,
-                        modifier = Modifier.height(72.dp)
-                    ) {
-                        bottomNavItems.forEach { item ->
-                            val isSelected = currentDestination?.hierarchy?.any { it.route == item.route } == true
-                            NavigationBarItem(
-                                icon = { Icon(if (isSelected) item.selectedIcon else item.unselectedIcon, contentDescription = item.title) },
-                                label = { Text(item.title, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal) },
-                                selected = isSelected,
-                                colors = NavigationBarItemDefaults.colors(
-                                    selectedIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                                    unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    selectedTextColor = MaterialTheme.colorScheme.primary,
-                                    unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    indicatorColor = MaterialTheme.colorScheme.primaryContainer
-                                ),
-                                onClick = {
-                                    navController.navigate(item.route) {
-                                        popUpTo(navController.graph.findStartDestination().id) { saveState = true }
-                                        launchSingleTop = true
-                                        restoreState = true
-                                    }
-                                }
-                            )
-                        }
+    NavHost(navController = navController, startDestination = startDestination) {
+        composable("login") {
+            LoginScreen(
+                authRepository = authRepository,
+                onNavigateToRegister = { navController.navigate("register") },
+                onLoginSuccess = {
+                    navController.navigate("guide") {
+                        popUpTo(0)
                     }
                 }
-            }
+            )
         }
-    ) { innerPadding ->
-        NavHost(
-            navController = navController,
-            startDestination = startDestination,
-            modifier = Modifier.padding(bottom = if (showBottomBar) 96.dp else 0.dp)
-        ) {
-            
-            composable(Routes.WELCOME) {
-                WelcomeScreen(
-                    onNavigateToLogin = { navController.navigate(Routes.LOGIN) },
-                    onNavigateToHomeAsGuest = { 
-                        navController.navigate(Routes.HOME) {
-                            popUpTo(Routes.WELCOME) { inclusive = true }
-                        }
+        composable("register") {
+            RegisterScreen(
+                authRepository = authRepository,
+                onNavigateToLogin = { navController.popBackStack() },
+                onRegisterSuccess = {
+                    navController.navigate("guide") {
+                        popUpTo(0)
                     }
-                )
-            }
-            composable(Routes.LOGIN) {
-                LoginScreen(
-                    authRepository = authRepository,
-                    onNavigateToRegister = { navController.navigate(Routes.REGISTER) },
-                    onLoginSuccess = { 
-                        navController.navigate(Routes.HOME) { 
-                            popUpTo(Routes.LOGIN) { inclusive = true } 
-                        } 
-                    }
-                )
-            }
-            composable(Routes.REGISTER) {
-                RegisterScreen(
-                    authRepository = authRepository,
-                    onNavigateToLogin = { navController.navigate(Routes.LOGIN) },
-                    onRegisterSuccess = { 
-                        navController.navigate(Routes.HOME) { 
-                            popUpTo(Routes.LOGIN) { inclusive = true } 
-                        } 
-                    }
-                )
-            }
-            composable(Routes.HOME) {
-                HomeScreen(
-                    authRepository = authRepository,
-                    onNavigateToStore = { 
-                        navController.navigate(Routes.STORE) { 
-                            popUpTo(navController.graph.findStartDestination().id) { saveState = true }
-                            launchSingleTop = true
-                            restoreState = true 
-                        } 
-                    },
-                    onNavigateToChat = { 
-                        navController.navigate(Routes.CHAT) { 
-                            popUpTo(navController.graph.findStartDestination().id) { saveState = true }
-                            launchSingleTop = true
-                            restoreState = true 
-                        } 
-                    },
-                    onNavigateToAdmin = { navController.navigate(Routes.ADMIN_DASHBOARD) },
-                    onNavigateToGuide = { category -> navController.navigate(Routes.guide(category)) },
-                    onLogout = { 
-                        navController.navigate(Routes.LOGIN) { 
-                            popUpTo(Routes.HOME) { inclusive = true } 
-                        } 
-                    }
-                )
-            }
-            composable(Routes.STORE) { 
-                StoreScreen(
-                    onBack = { navController.popBackStack() }, 
-                    onNavigateToProduct = { id -> navController.navigate(Routes.productDetails(id)) }
-                ) 
-            }
-            composable(Routes.PROFILE) {
-                if (FirebaseAuth.getInstance().currentUser == null) {
-                    androidx.compose.runtime.LaunchedEffect(Unit) {
-                        navController.navigate(Routes.LOGIN)
-                    }
-                } else {
-                    ProfileScreen(
-                        authRepository = authRepository,
-                        onBack = { navController.popBackStack() }
-                    )
                 }
-            }
-            composable(Routes.CHAT) { 
-                if (FirebaseAuth.getInstance().currentUser == null) {
-                    androidx.compose.runtime.LaunchedEffect(Unit) {
-                        navController.navigate(Routes.LOGIN)
+            )
+        }
+        composable("guide") {
+            GuideScreen(
+                category = "crops",
+                onBack = { navController.popBackStack() },
+                onNavigateToCrop = { id -> navController.navigate("crop/$id") },
+                onNavigateToProblem = { id -> navController.navigate("problem/$id") }
+            )
+        }
+        composable("crop/{id}") { backStackEntry ->
+            val id = backStackEntry.arguments?.getString("id") ?: return@composable
+            CropDetailsScreen(
+                cropId = id,
+                onBack = { navController.popBackStack() },
+                onNavigateToProblem = { pId -> navController.navigate("problem/$pId") },
+                onNavigateToChatWithQuery = { query -> navController.navigate("chat?initialQuery=$query") }
+            )
+        }
+        composable("problem/{id}") { backStackEntry ->
+            val id = backStackEntry.arguments?.getString("id") ?: return@composable
+            ProblemDetailsScreen(
+                problemId = id,
+                onBack = { navController.popBackStack() },
+                onNavigateToProduct = { pId -> navController.navigate("product/$pId") },
+                onNavigateToChatWithQuery = { query -> navController.navigate("chat?initialQuery=$query") }
+            )
+        }
+        composable("product/{id}") { backStackEntry ->
+            val id = backStackEntry.arguments?.getString("id") ?: return@composable
+            ProductDetailsScreen(
+                productId = id,
+                onBack = { navController.popBackStack() },
+                onNavigateToCart = { navController.navigate("checkout") }
+            )
+        }
+        composable("profile") {
+            ProfileScreen(
+                authRepository = authRepository,
+                onBack = { navController.popBackStack() },
+                onNavigateToFavorites = { navController.navigate("favorites") },
+                onNavigateToMyOrders = { navController.navigate("myOrders") },
+                onNavigateToAdmin = { navController.navigate("adminDashboard") },
+                onLogout = {
+                    authRepository.logout()
+                    navController.navigate("login") {
+                        popUpTo(0)
                     }
-                } else {
-                    ChatScreen(
-                        onBack = { navController.popBackStack() }, 
-                        onNavigateToProduct = { id -> navController.navigate(Routes.productDetails(id)) }
-                    ) 
                 }
-            }
-            composable(Routes.GUIDE) { backStackEntry ->
-                val category = backStackEntry.arguments?.getString("category") ?: ""
-                GuideScreen(category = category, onBack = { navController.popBackStack() })
-            }
-            composable(Routes.IMPORT_DB) {
-                com.example.alfalah.ui.screens.admin.ImportDatabaseScreen(onBack = { navController.popBackStack() })
-            }
-            composable(Routes.ADMIN_DASHBOARD) { 
-                AdminDashboardScreen(onBack = { navController.popBackStack() }, onNavigateToImport = { navController.navigate(Routes.IMPORT_DB) }) 
-            }
-            composable(Routes.PRODUCT_DETAILS) { backStackEntry ->
-                val productId = backStackEntry.arguments?.getString("productId") ?: ""
-                ProductDetailsScreen(
-                    productId = productId, 
-                    onBack = { navController.popBackStack() }
-                )
-            }
+            )
+        }
+        composable("favorites") {
+            FavoritesScreen(
+                onBack = { navController.popBackStack() },
+                onNavigateToProduct = { pId -> navController.navigate("product/$pId") },
+                onNavigateToCrop = { cId -> navController.navigate("crop/$cId") },
+                onNavigateToProblem = { pId -> navController.navigate("problem/$pId") }
+            )
+        }
+        composable("myOrders") {
+            MyOrdersScreen(
+                onBack = { navController.popBackStack() }
+            )
+        }
+        composable("conversations") {
+            ConversationsScreen(
+                onBack = { navController.popBackStack() },
+                onNavigateToChat = { convId -> navController.navigate("chat?id=$convId") }
+            )
+        }
+        composable(
+            route = "chat?id={id}&initialQuery={initialQuery}",
+            arguments = listOf(
+                androidx.navigation.navArgument("id") { nullable = true },
+                androidx.navigation.navArgument("initialQuery") { nullable = true }
+            )
+        ) { backStackEntry ->
+            val id = backStackEntry.arguments?.getString("id")
+            val query = backStackEntry.arguments?.getString("initialQuery")
+            ChatScreen(
+                conversationId = id,
+                onBack = { navController.popBackStack() },
+                onNavigateToProduct = { pId -> navController.navigate("product/$pId") },
+                initialQuery = query
+            )
+        }
+        composable("adminDashboard") {
+            AdminDashboardScreen(
+                onBack = { navController.popBackStack() },
+                onNavigateToImport = { navController.navigate("importDb") }
+            )
+        }
+        composable("adminOrders") {
+            AdminOrdersScreen()
+        }
+        composable("checkout") {
+            CheckoutScreen(
+                onBack = { navController.popBackStack() },
+                onOrderSuccess = { navController.navigate("myOrders") }
+            )
+        }
+        composable("importDb") {
+            ImportDatabaseScreen(
+                onBack = { navController.popBackStack() }
+            )
         }
     }
 }

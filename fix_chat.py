@@ -1,10 +1,7 @@
-import re
-
 with open("app/src/main/java/com/example/alfalah/ui/screens/chat/ChatViewModel.kt", "r") as f:
-    text = f.read()
+    content = f.read()
 
-# Fix the string literals
-text = text.replace('\\\\n', '\\n')
+content = content.replace("currentConversation?.messages ?: emptyList()", "currentConversation?.messages ?: emptyList<com.example.alfalah.data.model.ChatMessage>()")
 
 with open("app/src/main/java/com/example/alfalah/ui/screens/chat/ChatViewModel.kt", "w") as f:
-    f.write(text)
+    f.write(content)

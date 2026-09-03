@@ -51,6 +51,9 @@ fun LoginScreen(
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
     var isLoading by remember { mutableStateOf(false) }
+    var showForgotPasswordDialog by remember { mutableStateOf(false) }
+    var forgotPasswordEmail by remember { mutableStateOf("") }
+    var isSendingResetEmail by remember { mutableStateOf(false) }
     var errorMsg by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
@@ -222,7 +225,7 @@ fun LoginScreen(
                         contentAlignment = Alignment.CenterStart
                     ) {
                         TextButton(
-                            onClick = { /* No function implemented in project */ },
+                            onClick = { showForgotPasswordDialog = true },
                             contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
                             modifier = Modifier.padding(top = 8.dp)
                         ) {
@@ -381,6 +384,56 @@ fun LoginScreen(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .padding(bottom = 24.dp)
+            )
+        }
+
+        if (showForgotPasswordDialog) {
+            AlertDialog(
+                onDismissRequest = { showForgotPasswordDialog = false },
+                title = { Text("استعادة كلمة المرور") },
+                text = {
+                    Column {
+                        Text("أدخل بريدك الإلكتروني وسنرسل لك رابطاً لإعادة تعيين كلمة المرور.")
+                        Spacer(modifier = Modifier.height(16.dp))
+                        OutlinedTextField(
+                            value = forgotPasswordEmail,
+                            onValueChange = { forgotPasswordEmail = it },
+                            label = { Text("البريد الإلكتروني") },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+                },
+                confirmButton = {
+                    Button(
+                        onClick = {
+                            if (forgotPasswordEmail.isNotBlank()) {
+                                isSendingResetEmail = true
+                                scope.launch {
+                                    val result = authRepository.resetPassword(forgotPasswordEmail)
+                                    isSendingResetEmail = false
+                                    showForgotPasswordDialog = false
+                                    if (result.isSuccess) {
+                                        android.widget.Toast.makeText(context, "تم إرسال رابط إعادة تعيين كلمة المرور إلى بريدك الإلكتروني.", android.widget.Toast.LENGTH_LONG).show()
+                                    } else {
+                                        android.widget.Toast.makeText(context, result.exceptionOrNull()?.message ?: "حدث خطأ.", android.widget.Toast.LENGTH_LONG).show()
+                                    }
+                                }
+                            }
+                        },
+                        enabled = !isSendingResetEmail
+                    ) {
+                        if (isSendingResetEmail) {
+                            CircularProgressIndicator(modifier = Modifier.size(24.dp), color = MaterialTheme.colorScheme.onPrimary, strokeWidth = 2.dp)
+                        } else {
+                            Text("إرسال")
+                        }
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showForgotPasswordDialog = false }) {
+                        Text("إلغاء")
+                    }
+                }
             )
         }
     }

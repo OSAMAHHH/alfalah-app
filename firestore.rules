@@ -21,6 +21,10 @@ service cloud.firestore {
       match /myCrops/{documentId} {
         allow read, write: if isAuthenticated() && request.auth.uid == userId;
       }
+      
+      match /cart/{documentId} {
+        allow read, write: if isAuthenticated() && request.auth.uid == userId;
+      }
       match /conversations/{documentId} {
         allow read, write: if isAuthenticated() && request.auth.uid == userId;
       }
@@ -63,6 +67,12 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    
+    match /orders/{documentId} {
+      allow read: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+      allow update: if isAdmin();
+    }
     match /{document=**} {
       allow read, write: if false;
     }

@@ -69,11 +69,20 @@ fun parseMarkdownText(markdown: String): AnnotatedString {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ChatScreen(
+    conversationId: String?,
     onBack: () -> Unit,
     onNavigateToProduct: (String) -> Unit,
     modifier: Modifier = Modifier,
-    viewModel: ChatViewModel = viewModel()
+    viewModel: ChatViewModel = viewModel(),
+    initialQuery: String? = null
 ) {
+    LaunchedEffect(conversationId) {
+        viewModel.loadConversation(conversationId)
+        if (!initialQuery.isNullOrEmpty()) {
+            viewModel.sendMessage(initialQuery)
+        }
+    }
+
     val messages by viewModel.messages.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
     var inputText by remember { mutableStateOf("") }
