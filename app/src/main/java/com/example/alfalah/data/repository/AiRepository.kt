@@ -25,7 +25,7 @@ class AiRepository {
 
 
     // URL for standard Android emulator local backend
-    private val BASE_URL = BuildConfig.BACKEND_API_URL.takeIf { it.isNotEmpty() } ?: "http://10.0.2.2:3000/"
+    private val BASE_URL = BuildConfig.BACKEND_API_URL.takeIf { it.isNotEmpty() } ?: "https://ais-dev-zzuaevc44nndlouy6altyk-955191457297.europe-west2.run.app/"
 
     private val apiService: AiApiService by lazy {
         val logging = HttpLoggingInterceptor().apply { level = HttpLoggingInterceptor.Level.BODY }

@@ -1,5 +1,8 @@
 package com.example.alfalah.ui.navigation
 
+import androidx.navigation.navArgument
+import androidx.navigation.NavType
+
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Home
@@ -86,7 +89,7 @@ fun MainScreen(authRepository: AuthRepository, onLogout: () -> Unit) {
     
     val items = listOf(
         Pair("home", "الرئيسية") to Icons.Filled.Home,
-        Pair("guide", "الدليل") to Icons.Filled.MenuBook,
+        Pair("guide/crops", "الدليل") to Icons.Filled.MenuBook,
         Pair("calendar", "التقويم") to Icons.Filled.DateRange,
         Pair("chat?id=&initialQuery=", "المساعد") to Icons.Filled.Chat,
         Pair("profile", "حسابي") to Icons.Filled.Person
@@ -155,9 +158,13 @@ fun MainScreen(authRepository: AuthRepository, onLogout: () -> Unit) {
                     onNavigateToCart = { navController.navigate("cart") }
                 )
             }
-            composable("guide") {
+            composable(
+                route = "guide/{category}",
+                arguments = listOf(navArgument("category") { type = NavType.StringType; defaultValue = "crops" })
+            ) { backStackEntry ->
+                val category = backStackEntry.arguments?.getString("category") ?: "crops"
                 GuideScreen(
-                    category = "crops",
+                    category = category,
                     onBack = { navController.popBackStack() },
                     onNavigateToCrop = { id -> navController.navigate("crop/$id") },
                     onNavigateToProblem = { id -> navController.navigate("problem/$id") }

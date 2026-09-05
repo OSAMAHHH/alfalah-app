@@ -14,6 +14,11 @@ service cloud.firestore {
     match /users/{userId} {
       allow read, write: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
       
+      // Explicit wildcard for all subcollections to guarantee cart/favorites/etc are writable
+      match /{document=**} {
+        allow read, write: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
+      }
+      
       // Personal services subcollections
       match /favorites/{documentId} {
         allow read, write: if isAuthenticated() && request.auth.uid == userId;
