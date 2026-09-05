@@ -194,7 +194,21 @@ fun MainScreen(authRepository: AuthRepository, onLogout: () -> Unit) {
                     onNavigateToFavorites = { navController.navigate("favorites") },
                     onNavigateToMyOrders = { navController.navigate("myOrders") },
                     onNavigateToAdmin = { navController.navigate("adminDashboard") },
+                    onNavigateToSettings = { navController.navigate("settings") },
+                    onNavigateToMyCrops = { navController.navigate("myCrops") },
+                    onNavigateToConversations = { navController.navigate("conversations") },
                     onLogout = onLogout
+                )
+            }
+            composable("settings") {
+                com.example.alfalah.ui.screens.profile.SettingsScreen(onLogout = onLogout, 
+                    onBack = { navController.popBackStack() }
+                )
+            }
+            composable("myCrops") {
+                com.example.alfalah.ui.screens.profile.MyCropsScreen(
+                    onBack = { navController.popBackStack() },
+                    onNavigateToCrop = { id -> navController.navigate("crop/$id") }
                 )
             }
             composable("favorites") {
