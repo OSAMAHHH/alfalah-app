@@ -46,7 +46,7 @@ import com.example.alfalah.ui.screens.admin.ImportDatabaseScreen
 fun AppNavigation() {
     val navController = rememberNavController()
     val authRepository = remember { AuthRepository() }
-    val startDestination = if (com.google.firebase.auth.FirebaseAuth.getInstance().currentUser != null) "main" else "login"
+    val startDestination = "main"
 
     NavHost(navController = navController, startDestination = startDestination) {
         composable("login") {

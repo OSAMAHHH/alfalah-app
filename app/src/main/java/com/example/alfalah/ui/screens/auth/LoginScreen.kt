@@ -285,6 +285,16 @@ fun LoginScreen(
                     
                     Spacer(modifier = Modifier.height(24.dp))
                     
+                    Spacer(modifier = Modifier.height(12.dp))
+                    TextButton(
+                        onClick = onLoginSuccess,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("الدخول كزائر", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.primary)
+                    }
+                    
+                    Spacer(modifier = Modifier.height(24.dp))
+                    
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)

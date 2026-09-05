@@ -447,7 +447,7 @@ fun ProductDialog(product: Product, isAdding: Boolean, onDismiss: () -> Unit, on
                     ExposedDropdownMenuBox(expanded = expandedCurrency, onExpandedChange = { expandedCurrency = it }, modifier = Modifier.weight(1f)) {
                         OutlinedTextField(value = currency, onValueChange = {}, readOnly = true, label = { Text("العملة") }, trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expandedCurrency) }, modifier = Modifier.menuAnchor())
                         ExposedDropdownMenu(expanded = expandedCurrency, onDismissRequest = { expandedCurrency = false }) {
-                            listOf("SAR", "USD", "EGP", "AED").forEach { cur ->
+                            listOf("YER", "SAR", "USD").forEach { cur ->
                                 DropdownMenuItem(text = { Text(cur) }, onClick = { currency = cur; expandedCurrency = false })
                             }
                         }

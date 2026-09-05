@@ -147,7 +147,7 @@ fun StoreScreen(
                                     cartItemsCount += 1
                                     Toast.makeText(context, "تمت الإضافة للسلة", Toast.LENGTH_SHORT).show()
                                 }
-                                else Toast.makeText(context, "حدث خطأ: ${result.exceptionOrNull()?.message}", Toast.LENGTH_LONG).show()
+                                else Toast.makeText(context, result.exceptionOrNull()?.message ?: "حدث خطأ غير معروف", Toast.LENGTH_LONG).show()
                             }
                         }
                     )
