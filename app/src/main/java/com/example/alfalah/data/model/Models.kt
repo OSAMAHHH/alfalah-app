@@ -2,7 +2,9 @@ package com.example.alfalah.data.model
 
 import com.google.firebase.firestore.DocumentId
 import com.squareup.moshi.JsonClass
+import androidx.annotation.Keep
 
+@Keep
 data class User(
     @DocumentId var id: String = "",
     val name: String = "",
@@ -15,6 +17,7 @@ data class User(
 )
 
 @JsonClass(generateAdapter = true)
+@Keep
 data class Product(
     @DocumentId var id: String = "",
     val name: String = "",
@@ -36,6 +39,7 @@ data class Product(
 )
 
 @JsonClass(generateAdapter = true)
+@Keep
 data class Crop(
     @DocumentId var id: String = "",
     val name: String = "",
@@ -50,6 +54,7 @@ data class Crop(
 )
 
 @JsonClass(generateAdapter = true)
+@Keep
 data class AgriculturalProblem(
     @DocumentId var id: String = "",
     val cropId: String = "",
@@ -64,6 +69,7 @@ data class AgriculturalProblem(
     val isActive: Boolean = true
 )
 
+@Keep
 data class ChatMessage(
     val id: String = "",
     val text: String = "",
@@ -72,6 +78,7 @@ data class ChatMessage(
     val recommendedProductIds: List<String> = emptyList()
 )
 
+@Keep
 data class Favorite(
     @DocumentId var id: String = "",
     val itemId: String = "",
@@ -79,12 +86,14 @@ data class Favorite(
     val createdAt: Long = System.currentTimeMillis()
 )
 
+@Keep
 data class MyCrop(
     @DocumentId var id: String = "",
     val cropId: String = "",
     val createdAt: Long = System.currentTimeMillis()
 )
 
+@Keep
 data class Conversation(
     @DocumentId var id: String = "",
     val title: String = "",
@@ -96,9 +105,11 @@ data class Conversation(
 // Custom Backend API Models
 
 @JsonClass(generateAdapter = true)
+@Keep
 data class ChatMessageItem(val role: String, val content: String)
 
 @JsonClass(generateAdapter = true)
+@Keep
 data class AiChatRequest(
     val message: String,
     val conversationId: String = "",
@@ -106,12 +117,14 @@ data class AiChatRequest(
 )
 
 @JsonClass(generateAdapter = true)
+@Keep
 data class AiChatResponse(
     val answer: String,
     val recommendedProducts: List<String> = emptyList()
 )
 
 @JsonClass(generateAdapter = true)
+@Keep
 data class ImportData(
     val crops: List<Crop> = emptyList(),
     @com.squareup.moshi.Json(name = "agricultural_problems") val agriculturalProblems: List<AgriculturalProblem> = emptyList(),
@@ -120,6 +133,7 @@ data class ImportData(
 
 
 @JsonClass(generateAdapter = true)
+@Keep
 data class CartItem(
     val productId: String = "",
     val name: String = "",
@@ -130,6 +144,7 @@ data class CartItem(
 )
 
 @JsonClass(generateAdapter = true)
+@Keep
 data class Order(
     @DocumentId var id: String = "",
     val userId: String = "",

@@ -134,11 +134,18 @@ fun MainScreen(authRepository: AuthRepository, onLogout: () -> Unit) {
                     onNavigateToGuide = { cat -> navController.navigate("guide") },
                     onNavigateToCrop = { id -> navController.navigate("crop/$id") },
                     onNavigateToProduct = { id -> navController.navigate("product/$id") },
-                    onNavigateToStore = { navController.navigate("guide") },
+                    onNavigateToStore = { navController.navigate("store") },
                     onNavigateToAdmin = { navController.navigate("adminDashboard") },
                     onNavigateToChat = { navController.navigate("conversations") },
                     onNavigateToCart = { navController.navigate("cart") },
                     onLogout = onLogout
+                )
+            }
+            composable("store") {
+                com.example.alfalah.ui.screens.store.StoreScreen(
+                    onBack = { navController.popBackStack() },
+                    onNavigateToProduct = { id -> navController.navigate("product/$id") },
+                    onNavigateToCart = { navController.navigate("cart") }
                 )
             }
             composable("guide") {
