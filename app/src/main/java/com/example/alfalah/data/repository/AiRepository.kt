@@ -21,6 +21,8 @@ import org.json.JSONObject
 import android.util.Log
 
 class AiRepository {
+    private val firestoreRepo = FirestoreRepository()
+
 
     // URL for standard Android emulator local backend
     private val BASE_URL = BuildConfig.BACKEND_API_URL.takeIf { it.isNotEmpty() } ?: "http://10.0.2.2:3000/"
@@ -56,6 +58,30 @@ class AiRepository {
             // Get Firebase ID token
             val tokenResult = user.getIdToken(false).await()
             val token = "Bearer ${tokenResult.token}"
+
+            // ---- Local Knowledge Base Search ----
+            val lowerMsg = message.lowercase()
+            val crops = firestoreRepo.getCrops().getOrNull() ?: emptyList()
+            val problems = firestoreRepo.getProblems().getOrNull() ?: emptyList()
+            
+            val matchedProblem = problems.find { p ->
+                lowerMsg.contains(p.name.lowercase()) || p.synonyms.any { lowerMsg.contains(it.lowercase()) }
+            }
+            if (matchedProblem != null) {
+                val ans = "بناءً على قاعدة المعرفة المحلية:\nالمشكلة: ${matchedProblem.name}\nالأعراض: ${matchedProblem.symptoms.joinToString("، ")}\nالعلاج: ${matchedProblem.treatment}"
+                return@withContext Pair(ans, matchedProblem.recommendedProductIds)
+            }
+            
+            val matchedCrop = crops.find { c ->
+                lowerMsg.contains(c.name.lowercase()) || c.synonyms.any { lowerMsg.contains(it.lowercase()) }
+            }
+            if (matchedCrop != null) {
+                val ans = "بناءً على قاعدة المعرفة المحلية:\nالمحصول: ${matchedCrop.name}\nالوصف: ${matchedCrop.description}\nموسم الزراعة: ${matchedCrop.plantingSeason}\nطرق الري: ${matchedCrop.irrigation}\nالتسميد: ${matchedCrop.fertilization}"
+                return@withContext Pair(ans, emptyList())
+            }
+            // ---- End Local Search ----
+
+
 
             val request = AiChatRequest(message = message, conversationId = conversationId, history = history)
             

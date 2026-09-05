@@ -46,6 +46,11 @@ fun CartScreen(
 
     fun loadCart() {
         scope.launch {
+            if (com.google.firebase.auth.FirebaseAuth.getInstance().currentUser == null) {
+                items = emptyList()
+                isLoading = false
+                return@launch
+            }
             val result = userRepo.getCartItems()
             if (result.isSuccess) {
                 items = result.getOrDefault(emptyList())
@@ -85,7 +90,7 @@ fun CartScreen(
                 )
             },
             bottomBar = {
-                if (items.isNotEmpty()) {
+                if (true) {
                     Surface(
                         color = MaterialTheme.colorScheme.surface,
                         tonalElevation = 8.dp,
@@ -119,7 +124,7 @@ fun CartScreen(
                                     .fillMaxWidth()
                                     .height(56.dp),
                                 shape = RoundedCornerShape(12.dp),
-                                enabled = !isUpdating
+                                enabled = items.isNotEmpty() && !isUpdating
                             ) {
                                 Text("إتمام الطلب", style = MaterialTheme.typography.titleMedium)
                             }

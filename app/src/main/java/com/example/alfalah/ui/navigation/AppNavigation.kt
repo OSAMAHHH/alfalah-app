@@ -88,7 +88,7 @@ fun MainScreen(authRepository: AuthRepository, onLogout: () -> Unit) {
         Pair("home", "الرئيسية") to Icons.Filled.Home,
         Pair("guide", "الدليل") to Icons.Filled.MenuBook,
         Pair("calendar", "التقويم") to Icons.Filled.DateRange,
-        Pair("conversations", "المساعد") to Icons.Filled.Chat,
+        Pair("chat?id=&initialQuery=", "المساعد") to Icons.Filled.Chat,
         Pair("profile", "حسابي") to Icons.Filled.Person
     )
 
@@ -98,7 +98,11 @@ fun MainScreen(authRepository: AuthRepository, onLogout: () -> Unit) {
             val currentDestination = navBackStackEntry?.destination
             
             // Hide bottom bar in sub-screens
-            val showBottomBar = items.any { it.first.first == currentDestination?.route }
+            val showBottomBar = items.any { 
+                val destRoute = currentDestination?.route ?: ""
+                val itemRoute = it.first.first
+                destRoute == itemRoute || (itemRoute.startsWith("chat") && destRoute.startsWith("chat"))
+            }
             
             if (showBottomBar) {
                 NavigationBar {
@@ -107,7 +111,10 @@ fun MainScreen(authRepository: AuthRepository, onLogout: () -> Unit) {
                         NavigationBarItem(
                             icon = { Icon(icon, contentDescription = label) },
                             label = { Text(label) },
-                            selected = currentDestination?.hierarchy?.any { it.route == route } == true,
+                            selected = currentDestination?.hierarchy?.any { 
+                                val destRoute = it.route ?: ""
+                                destRoute == route || (route.startsWith("chat") && destRoute.startsWith("chat"))
+                            } == true,
                             onClick = {
                                 navController.navigate(route) {
                                     popUpTo(navController.graph.findStartDestination().id) {
@@ -136,7 +143,7 @@ fun MainScreen(authRepository: AuthRepository, onLogout: () -> Unit) {
                     onNavigateToProduct = { id -> navController.navigate("product/$id") },
                     onNavigateToStore = { navController.navigate("store") },
                     onNavigateToAdmin = { navController.navigate("adminDashboard") },
-                    onNavigateToChat = { navController.navigate("conversations") },
+                    onNavigateToChat = { navController.navigate("chat?id=&initialQuery=") },
                     onNavigateToCart = { navController.navigate("cart") },
                     onLogout = onLogout
                 )

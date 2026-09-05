@@ -34,9 +34,9 @@ class UserServicesRepository {
         return try {
             val snapshot = firestore.collection("orders")
                 .whereEqualTo("userId", uid)
-                .orderBy("createdAt", Query.Direction.DESCENDING)
                 .get().await()
-            Result.success(snapshot.toObjects(Order::class.java))
+            val orders = snapshot.toObjects(Order::class.java).sortedByDescending { it.createdAt }
+            Result.success(orders)
         } catch (e: Exception) {
             Result.failure(e)
         }
@@ -117,7 +117,7 @@ class UserServicesRepository {
     suspend fun uploadPaymentReceipt(uri: Uri): Result<String> {
         val uid = getUserId() ?: run { android.util.Log.e("UserServicesRepository", "addToCart failed: Not logged in"); return Result.failure(Exception("Not logged in")) }
         return try {
-            val ref = storage.reference.child("receipts/$uid/${UUID.randomUUID()}")
+            val ref = storage.reference.child("payment_receipts/$uid/${UUID.randomUUID()}")
             ref.putFile(uri).await()
             val url = ref.downloadUrl.await().toString()
             Result.success(url)
@@ -180,9 +180,9 @@ class UserServicesRepository {
     suspend fun getAllOrders(): Result<List<Order>> {
         return try {
             val snapshot = firestore.collection("orders")
-                .orderBy("createdAt", Query.Direction.DESCENDING)
                 .get().await()
-            Result.success(snapshot.toObjects(Order::class.java))
+            val orders = snapshot.toObjects(Order::class.java).sortedByDescending { it.createdAt }
+            Result.success(orders)
         } catch (e: Exception) {
             Result.failure(e)
         }
@@ -214,7 +214,7 @@ class UserServicesRepository {
         val uid = getUserId() ?: return false
         return try {
             val doc = firestore.collection("users").document(uid)
-                .collection("my_crops").document(cropId).get().await()
+                .collection("myCrops").document(cropId).get().await()
             doc.exists()
         } catch (e: Exception) {
             false
@@ -226,7 +226,7 @@ class UserServicesRepository {
         return try {
             val mc = MyCrop(id = cropId, cropId = cropId)
             firestore.collection("users").document(uid)
-                .collection("my_crops").document(cropId).set(mc).await()
+                .collection("myCrops").document(cropId).set(mc).await()
             Result.success(Unit)
         } catch (e: Exception) {
             android.util.Log.e("UserServicesRepository", "addToCart failed: ${e.message}", e)
@@ -238,7 +238,7 @@ class UserServicesRepository {
         val uid = getUserId() ?: run { android.util.Log.e("UserServicesRepository", "addToCart failed: Not logged in"); return Result.failure(Exception("Not logged in")) }
         return try {
             firestore.collection("users").document(uid)
-                .collection("my_crops").document(cropId).delete().await()
+                .collection("myCrops").document(cropId).delete().await()
             Result.success(Unit)
         } catch (e: Exception) {
             android.util.Log.e("UserServicesRepository", "addToCart failed: ${e.message}", e)
@@ -277,7 +277,7 @@ class UserServicesRepository {
     suspend fun getMyCrops(): List<MyCrop> {
         val uid = getUserId() ?: return emptyList()
         return try {
-            val snapshot = firestore.collection("users").document(uid).collection("my_crops").get().await()
+            val snapshot = firestore.collection("users").document(uid).collection("myCrops").get().await()
             snapshot.toObjects(MyCrop::class.java)
         } catch (e: Exception) {
             emptyList()

@@ -59,9 +59,6 @@ fun StoreScreen(
                 val result = firestoreRepository.getProducts()
                 if (result.isSuccess) {
                     products = result.getOrDefault(emptyList())
-                    userServicesRepository.getCartItems().onSuccess { items ->
-                        cartItemsCount = items.size
-                    }
                 } else {
                     errorMsg = "لا توجد بيانات متاحة حالياً، يرجى التأكد من اتصالك بالإنترنت."
                 }
@@ -72,9 +69,34 @@ fun StoreScreen(
             }
         }
     }
+    
+    fun refreshCart() {
+        scope.launch {
+            if (com.google.firebase.auth.FirebaseAuth.getInstance().currentUser != null) {
+                userServicesRepository.getCartItems().onSuccess { items ->
+                    cartItemsCount = items.size
+                }
+            }
+        }
+    }
 
     LaunchedEffect(Unit) {
         loadData()
+    }
+    
+    // Refresh cart count every time screen becomes active (or just rely on local state updates)
+    val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
+    androidx.compose.runtime.DisposableEffect(lifecycleOwner) {
+        val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
+            if (event == androidx.lifecycle.Lifecycle.Event.ON_RESUME) {
+                refreshCart()
+            }
+        }
+        val lifecycle = lifecycleOwner.lifecycle
+        lifecycle.addObserver(observer)
+        onDispose {
+            lifecycle.removeObserver(observer)
+        }
     }
 
     Scaffold(
@@ -141,6 +163,10 @@ fun StoreScreen(
                         onClick = { onNavigateToProduct(product.id) },
                         onAddToCart = { p ->
                             scope.launch {
+                                if (com.google.firebase.auth.FirebaseAuth.getInstance().currentUser == null) {
+                                    Toast.makeText(context, "الرجاء تسجيل الدخول أولاً لإضافة منتجات", Toast.LENGTH_LONG).show()
+                                    return@launch
+                                }
                                 val item = CartItem(productId = p.id, name = p.name, price = p.price, currency = p.currency.ifEmpty { "YER" }, imageUrl = p.imageUrl, quantity = 1)
                                 val result = userServicesRepository.addToCart(item)
                                 if (result.isSuccess) {
