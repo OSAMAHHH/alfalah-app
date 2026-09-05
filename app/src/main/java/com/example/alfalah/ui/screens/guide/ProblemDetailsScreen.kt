@@ -175,7 +175,7 @@ fun ProblemDetailsScreen(
                                 ) {
                                     Column {
                                         Text(product.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                                        Text("${product.price} ${product.currency}", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
+                                        Text(com.example.alfalah.utils.CurrencyUtils.formatPrice(product.price, product.currency), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
                                     }
                                 }
                             }

@@ -5,6 +5,9 @@ import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import org.json.JSONObject
+import android.content.Context
+import android.location.Geocoder
+import java.util.Locale
 
 data class WeatherInfo(
     val temperature: Int,
@@ -17,7 +20,7 @@ data class WeatherInfo(
 class WeatherRepository {
     private val client = OkHttpClient()
     
-    suspend fun getCurrentWeather(lat: Double, lon: Double): Result<WeatherInfo> = withContext(Dispatchers.IO) {
+    suspend fun getCurrentWeather(lat: Double, lon: Double, context: Context): Result<WeatherInfo> = withContext(Dispatchers.IO) {
         try {
             // Get weather via Open-Meteo
             val weatherUrl = "https://api.open-meteo.com/v1/forecast?latitude=$lat&longitude=$lon&current=temperature_2m,is_day,weather_code"
@@ -32,7 +35,27 @@ class WeatherRepository {
             val code = current.getInt("weather_code")
             val desc = getWeatherDescription(code)
             
-            Result.success(WeatherInfo(temp, desc, isDay, code, "الموقع الحالي"))
+            var cityName = "الموقع الحالي"
+            try {
+                val geocoder = Geocoder(context, Locale("ar"))
+                val addresses = geocoder.getFromLocation(lat, lon, 1)
+                if (!addresses.isNullOrEmpty()) {
+                    val address = addresses[0]
+                    val locality = address.locality ?: address.subAdminArea ?: address.adminArea
+                    val countryName = address.countryName
+                    if (locality != null && countryName != null) {
+                        cityName = "$locality، $countryName"
+                    } else if (locality != null) {
+                        cityName = locality
+                    } else if (countryName != null) {
+                        cityName = countryName
+                    }
+                }
+            } catch (e: Exception) {
+                // Ignore geocoder errors and fallback to default
+            }
+            
+            Result.success(WeatherInfo(temp, desc, isDay, code, cityName))
         } catch (e: Exception) {
             Result.success(WeatherInfo(25, "غير متوفر", true, 0, "الموقع الحالي"))
         }

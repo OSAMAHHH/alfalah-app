@@ -67,20 +67,42 @@ class ChatViewModel(
         _isLoading.value = true
         
         viewModelScope.launch {
-            // Build context for AI based on MyCrops
-            var contextText = ""
-            try {
-                // val myCrops = userServicesRepository.getMyCrops()
-                // ... we can just ignore contextText for now or add empty ...
-            } catch (e: Exception) {}
-
             val historyItems = _messages.value.takeLast(5).map { msg ->
                 ChatMessageItem(
                     role = if (msg.isUser) "user" else "assistant",
                     content = msg.text
                 )
             }
-            val (responseText, productIds) = aiRepository.askAssistant(contextText + text, historyItems)
+            
+            var contextText = ""
+            try {
+                val cropsResult = firestoreRepository.getCrops().getOrNull() ?: emptyList()
+                val problemsResult = firestoreRepository.getProblems().getOrNull() ?: emptyList()
+                
+                val lowerText = text.lowercase()
+                val matchedCrops = cropsResult.filter { crop -> 
+                    lowerText.contains(crop.name.lowercase()) || (crop.synonyms.any { lowerText.contains(it.lowercase()) })
+                }
+                
+                val matchedProblems = problemsResult.filter { problem -> 
+                    lowerText.contains(problem.name.lowercase()) || (problem.synonyms.any { lowerText.contains(it.lowercase()) })
+                }
+                
+                if (matchedCrops.isNotEmpty() || matchedProblems.isNotEmpty()) {
+                    contextText = "معلومات من قاعدة بيانات التطبيق:\n"
+                    matchedCrops.forEach { c -> 
+                        contextText += "المحصول: " + c.name + " - الزراعة: " + c.plantingSeason + "\n"
+                    }
+                    matchedProblems.forEach { p ->
+                        contextText += "المشكلة: " + p.name + " - العلاج: " + p.treatment + "\n"
+                    }
+                    contextText += "\nبناءً على ذلك، أجب عن: "
+                }
+            } catch (e: Exception) {
+            }
+            
+            val finalPrompt = if (contextText.isEmpty()) text else contextText + text
+            val (responseText, productIds) = aiRepository.askAssistant(finalPrompt, historyItems)
 
             val recommendedProducts = mutableListOf<Product>()
             for (pid in productIds) {

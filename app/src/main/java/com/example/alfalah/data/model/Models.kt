@@ -4,7 +4,7 @@ import com.google.firebase.firestore.DocumentId
 import com.squareup.moshi.JsonClass
 
 data class User(
-    @DocumentId val id: String = "",
+    @DocumentId var id: String = "",
     val name: String = "",
     val email: String = "",
     val role: String = "user", // "user" or "admin"
@@ -16,7 +16,7 @@ data class User(
 
 @JsonClass(generateAdapter = true)
 data class Product(
-    @DocumentId val id: String = "",
+    @DocumentId var id: String = "",
     val name: String = "",
     val imageUrl: String = "",
     val description: String = "",
@@ -37,7 +37,7 @@ data class Product(
 
 @JsonClass(generateAdapter = true)
 data class Crop(
-    @DocumentId val id: String = "",
+    @DocumentId var id: String = "",
     val name: String = "",
     val synonyms: List<String> = emptyList(),
     val description: String = "",
@@ -51,7 +51,7 @@ data class Crop(
 
 @JsonClass(generateAdapter = true)
 data class AgriculturalProblem(
-    @DocumentId val id: String = "",
+    @DocumentId var id: String = "",
     val cropId: String = "",
     val name: String = "",
     val synonyms: List<String> = emptyList(),
@@ -73,20 +73,20 @@ data class ChatMessage(
 )
 
 data class Favorite(
-    @DocumentId val id: String = "",
+    @DocumentId var id: String = "",
     val itemId: String = "",
     val itemType: String = "", // "crop", "problem", "product"
     val createdAt: Long = System.currentTimeMillis()
 )
 
 data class MyCrop(
-    @DocumentId val id: String = "",
+    @DocumentId var id: String = "",
     val cropId: String = "",
     val createdAt: Long = System.currentTimeMillis()
 )
 
 data class Conversation(
-    @DocumentId val id: String = "",
+    @DocumentId var id: String = "",
     val title: String = "",
     val createdAt: Long = System.currentTimeMillis(),
     val updatedAt: Long = System.currentTimeMillis(),
@@ -131,7 +131,7 @@ data class CartItem(
 
 @JsonClass(generateAdapter = true)
 data class Order(
-    @DocumentId val id: String = "",
+    @DocumentId var id: String = "",
     val userId: String = "",
     val customerName: String = "",
     val phone: String = "",

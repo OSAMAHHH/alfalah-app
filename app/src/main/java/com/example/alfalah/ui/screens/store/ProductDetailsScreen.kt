@@ -132,7 +132,7 @@ fun ProductDetailsScreen(
                                         val item = CartItem(productId = product?.id ?: "", name = product?.name ?: "", price = product?.price ?: 0.0, currency = product?.currency?.ifEmpty { "YER" } ?: "YER", imageUrl = product?.imageUrl ?: "", quantity = 1)
                                         val result = userServicesRepository.addToCart(item)
                                         if (result.isSuccess) Toast.makeText(context, "تمت الإضافة للسلة", Toast.LENGTH_SHORT).show()
-                                        else Toast.makeText(context, "حدث خطأ", Toast.LENGTH_SHORT).show()
+                                        else Toast.makeText(context, "حدث خطأ: ${result.exceptionOrNull()?.message}", Toast.LENGTH_LONG).show()
                                     }
                                 },
                                 shape = RoundedCornerShape(16.dp),

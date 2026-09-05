@@ -45,6 +45,7 @@ fun StoreScreen(
     userServicesRepository: UserServicesRepository = remember { UserServicesRepository() }
 ) {
     var products by remember { mutableStateOf<List<Product>>(emptyList()) }
+    var cartItemsCount by remember { mutableStateOf(0) }
     var isLoading by remember { mutableStateOf(true) }
     var errorMsg by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
@@ -58,6 +59,9 @@ fun StoreScreen(
                 val result = firestoreRepository.getProducts()
                 if (result.isSuccess) {
                     products = result.getOrDefault(emptyList())
+                    userServicesRepository.getCartItems().onSuccess { items ->
+                        cartItemsCount = items.size
+                    }
                 } else {
                     errorMsg = "لا توجد بيانات متاحة حالياً، يرجى التأكد من اتصالك بالإنترنت."
                 }
@@ -84,7 +88,9 @@ fun StoreScreen(
                 },
                 actions = {
                     IconButton(onClick = onNavigateToCart) {
-                        Icon(Icons.Outlined.ShoppingCart, contentDescription = "السلة")
+                        BadgedBox(badge = { if (cartItemsCount > 0) Badge { Text(cartItemsCount.toString()) } }) {
+                            Icon(Icons.Outlined.ShoppingCart, contentDescription = "السلة")
+                        }
                     }
                 }
             )
@@ -137,8 +143,11 @@ fun StoreScreen(
                             scope.launch {
                                 val item = CartItem(productId = p.id, name = p.name, price = p.price, currency = p.currency.ifEmpty { "YER" }, imageUrl = p.imageUrl, quantity = 1)
                                 val result = userServicesRepository.addToCart(item)
-                                if (result.isSuccess) Toast.makeText(context, "تمت الإضافة للسلة", Toast.LENGTH_SHORT).show()
-                                else Toast.makeText(context, "حدث خطأ", Toast.LENGTH_SHORT).show()
+                                if (result.isSuccess) {
+                                    cartItemsCount += 1
+                                    Toast.makeText(context, "تمت الإضافة للسلة", Toast.LENGTH_SHORT).show()
+                                }
+                                else Toast.makeText(context, "حدث خطأ: ${result.exceptionOrNull()?.message}", Toast.LENGTH_LONG).show()
                             }
                         }
                     )

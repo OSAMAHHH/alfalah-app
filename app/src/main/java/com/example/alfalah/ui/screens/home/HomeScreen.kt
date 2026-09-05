@@ -87,7 +87,7 @@ fun HomeScreen(
                 fusedLocationClient.getCurrentLocation(com.google.android.gms.location.Priority.PRIORITY_BALANCED_POWER_ACCURACY, null).addOnSuccessListener { location ->
                     if (location != null) {
                         scope.launch {
-                            weather = weatherRepository.getCurrentWeather(location.latitude, location.longitude).getOrNull()
+                            weather = weatherRepository.getCurrentWeather(location.latitude, location.longitude, context).getOrNull()
                             if (weather == null) locationError = "فشل في جلب بيانات الطقس"
                             weatherLoading = false
                         }
@@ -96,7 +96,7 @@ fun HomeScreen(
                         fusedLocationClient.lastLocation.addOnSuccessListener { lastLoc ->
                             if (lastLoc != null) {
                                 scope.launch {
-                                    weather = weatherRepository.getCurrentWeather(lastLoc.latitude, lastLoc.longitude).getOrNull()
+                                    weather = weatherRepository.getCurrentWeather(lastLoc.latitude, lastLoc.longitude, context).getOrNull()
                                     if (weather == null) locationError = "فشل في جلب بيانات الطقس"
                                     weatherLoading = false
                                 }
@@ -388,7 +388,7 @@ fun HomeScreen(
                             Column(modifier = Modifier.padding(12.dp)) {
                                 Text(product.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, maxLines = 1)
                                 Spacer(modifier = Modifier.height(4.dp))
-                                Text("${product.price} ${product.currency}", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary)
+                                Text(com.example.alfalah.utils.CurrencyUtils.formatPrice(product.price, product.currency), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary)
                             }
                         }
                     }

@@ -25,6 +25,9 @@ import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
+import com.example.alfalah.utils.ThemeManager
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.material.icons.filled.DarkMode
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -36,6 +39,9 @@ fun SettingsScreen(
     var showLogoutDialog by remember { mutableStateOf(false) }
     var showAboutDialog by remember { mutableStateOf(false) }
     val context = LocalContext.current
+    val isDarkModeFlow by ThemeManager.isDarkMode.collectAsState()
+    val isSystemDark = isSystemInDarkTheme()
+    val isDark = isDarkModeFlow ?: isSystemDark
     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
         Scaffold(
             topBar = {
@@ -56,6 +62,15 @@ fun SettingsScreen(
                     .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
+
+                SettingsSwitchItem(
+                    icon = Icons.Filled.DarkMode,
+                    title = "الوضع الليلي",
+                    subtitle = "تفعيل المظهر الداكن لإراحة العين",
+                    isChecked = isDark,
+                    onCheckedChange = { ThemeManager.toggleTheme(context, it) }
+                )
+                
                 SettingsItem(
                     icon = Icons.Filled.LocationOn,
                     title = "الموقع الجغرافي",
@@ -181,6 +196,37 @@ fun SettingsItem(
                 Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                 Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
+        }
+    }
+}
+
+@Composable
+fun SettingsSwitchItem(
+    icon: ImageVector,
+    title: String,
+    subtitle: String,
+    isChecked: Boolean,
+    onCheckedChange: (Boolean) -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth().clickable { onCheckedChange(!isChecked) },
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+            Spacer(modifier = Modifier.width(16.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            Switch(
+                checked = isChecked,
+                onCheckedChange = onCheckedChange,
+                colors = SwitchDefaults.colors(checkedThumbColor = MaterialTheme.colorScheme.primary, checkedTrackColor = MaterialTheme.colorScheme.primaryContainer)
+            )
         }
     }
 }

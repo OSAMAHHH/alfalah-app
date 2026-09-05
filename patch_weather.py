@@ -1,54 +1,71 @@
 import re
 
 with open("app/src/main/java/com/example/alfalah/data/repository/WeatherRepository.kt", "r") as f:
-    text = f.read()
+    content = f.read()
 
-new_weather_func = """
-    suspend fun getCurrentWeather(): Result<WeatherInfo> = withContext(Dispatchers.IO) {
-        try {
-            var lat = 24.7136
-            var lon = 46.6753
-            var city = "الرياض (افتراضي)"
+# Add Context import if not exists
+if "import android.content.Context" not in content:
+    content = content.replace("import org.json.JSONObject", "import org.json.JSONObject\nimport android.content.Context\nimport android.location.Geocoder\nimport java.util.Locale")
+
+# Change getCurrentWeather signature
+content = content.replace(
+    "suspend fun getCurrentWeather(lat: Double, lon: Double): Result<WeatherInfo>",
+    "suspend fun getCurrentWeather(lat: Double, lon: Double, context: Context): Result<WeatherInfo>"
+)
+
+# Update location logic
+old_weather_logic = '''            val desc = getWeatherDescription(code)
             
+            Result.success(WeatherInfo(temp, desc, isDay, code, "الموقع الحالي"))
+        } catch (e: Exception) {
+            Result.success(WeatherInfo(25, "غير متوفر", true, 0, "الموقع الحالي"))
+        }'''
+
+new_weather_logic = '''            val desc = getWeatherDescription(code)
+            
+            var cityName = "الموقع الحالي"
             try {
-                // Get location via IP
-                val ipRequest = Request.Builder().url("https://ipwho.is/").build()
-                val ipResponse = client.newCall(ipRequest).execute()
-                val bodyStr = ipResponse.body?.string()
-                if (!bodyStr.isNullOrEmpty()) {
-                    val ipData = JSONObject(bodyStr)
-                    if (ipData.optBoolean("success", false)) {
-                        lat = ipData.optDouble("latitude", 24.7136)
-                        lon = ipData.optDouble("longitude", 46.6753)
-                        city = ipData.optString("city", "الرياض")
+                val geocoder = Geocoder(context, Locale("ar"))
+                val addresses = geocoder.getFromLocation(lat, lon, 1)
+                if (!addresses.isNullOrEmpty()) {
+                    val address = addresses[0]
+                    val locality = address.locality ?: address.subAdminArea ?: address.adminArea
+                    val countryName = address.countryName
+                    if (locality != null && countryName != null) {
+                        cityName = "$locality، $countryName"
+                    } else if (locality != null) {
+                        cityName = locality
+                    } else if (countryName != null) {
+                        cityName = countryName
                     }
                 }
             } catch (e: Exception) {
-                // Ignore IP lookup failure, use defaults
+                // Ignore geocoder errors and fallback to default
             }
-
-            // Get weather via Open-Meteo
-            val weatherUrl = "https://api.open-meteo.com/v1/forecast?latitude=$lat&longitude=$lon&current=temperature_2m,is_day,weather_code"
-            val weatherRequest = Request.Builder().url(weatherUrl).build()
-            val weatherResponse = client.newCall(weatherRequest).execute()
-            val bodyStr = weatherResponse.body?.string() ?: "{}"
-            val weatherData = JSONObject(bodyStr)
             
-            val current = weatherData.getJSONObject("current")
-            val temp = current.getDouble("temperature_2m").toInt()
-            val isDay = current.getInt("is_day") == 1
-            val code = current.getInt("weather_code")
-            val desc = getWeatherDescription(code)
-            
-            Result.success(WeatherInfo(temp, desc, isDay, code, city))
+            Result.success(WeatherInfo(temp, desc, isDay, code, cityName))
         } catch (e: Exception) {
-            // Ultimate fallback if Open-Meteo fails
-            Result.success(WeatherInfo(25, "غير متوفر", true, 0, "الطقس"))
-        }
-    }
-"""
+            Result.success(WeatherInfo(25, "غير متوفر", true, 0, "الموقع الحالي"))
+        }'''
 
-text = re.sub(r'suspend fun getCurrentWeather\(\): Result<WeatherInfo> = withContext\(Dispatchers\.IO\) \{[\s\S]*?private fun getWeatherDescription', new_weather_func + '\n    private fun getWeatherDescription', text)
+content = content.replace(old_weather_logic, new_weather_logic)
 
 with open("app/src/main/java/com/example/alfalah/data/repository/WeatherRepository.kt", "w") as f:
-    f.write(text)
+    f.write(content)
+
+
+with open("app/src/main/java/com/example/alfalah/ui/screens/home/HomeScreen.kt", "r") as f:
+    hs_content = f.read()
+
+hs_content = hs_content.replace(
+    'weather = weatherRepository.getCurrentWeather(location.latitude, location.longitude).getOrNull()',
+    'weather = weatherRepository.getCurrentWeather(location.latitude, location.longitude, context).getOrNull()'
+)
+
+hs_content = hs_content.replace(
+    'weather = weatherRepository.getCurrentWeather(lastLoc.latitude, lastLoc.longitude).getOrNull()',
+    'weather = weatherRepository.getCurrentWeather(lastLoc.latitude, lastLoc.longitude, context).getOrNull()'
+)
+
+with open("app/src/main/java/com/example/alfalah/ui/screens/home/HomeScreen.kt", "w") as f:
+    f.write(hs_content)

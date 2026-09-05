@@ -1,57 +1,72 @@
 import re
 
-with open("app/src/main/java/com/example/alfalah/ui/screens/profile/SettingsScreen.kt", "r") as f:
-    content = f.read()
+settings_file = "app/src/main/java/com/example/alfalah/ui/screens/profile/SettingsScreen.kt"
+with open(settings_file, "r") as f:
+    settings_content = f.read()
 
-state_declaration = """
-    var showLogoutDialog by remember { mutableStateOf(false) }
-    var showAboutDialog by remember { mutableStateOf(false) }
-"""
+# Add imports
+if "import com.example.alfalah.utils.ThemeManager" not in settings_content:
+    settings_content = settings_content.replace(
+        "import androidx.compose.ui.unit.dp",
+        "import androidx.compose.ui.unit.dp\nimport com.example.alfalah.utils.ThemeManager\nimport androidx.compose.foundation.isSystemInDarkTheme\nimport androidx.compose.material.icons.filled.DarkMode"
+    )
 
-content = content.replace(
-    'var showLogoutDialog by remember { mutableStateOf(false) }',
-    state_declaration.strip()
-)
-
-# Weather button
-content = content.replace(
-    'onClick = { }',
-    'onClick = { val intent = Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS); context.startActivity(intent) }',
-    1 # First empty onClick is for Weather
-)
-
-# Notifications button
-content = content.replace(
-    'onClick = { }',
-    'onClick = { android.widget.Toast.makeText(context, "خدمة الإشعارات ستكون متاحة قريباً", android.widget.Toast.LENGTH_SHORT).show() }',
-    1
-)
-
-# About button
-content = content.replace(
-    'onClick = { }',
-    'onClick = { showAboutDialog = true }',
-    1
-)
-
-dialog_code = """
-        if (showAboutDialog) {
-            AlertDialog(
-                onDismissRequest = { showAboutDialog = false },
-                title = { Text("حول التطبيق") },
-                text = { Text("تطبيق الفلاح\\nالإصدار 1.0.0\\nتطبيق زراعي متكامل يهدف إلى مساعدة المزارعين من خلال توفير معلومات دقيقة حول المحاصيل، الآفات، والمنتجات الزراعية، بالإضافة إلى مساعد ذكي زراعي.\\n\\nتطوير: فريق الفلاح") },
-                confirmButton = {
-                    Button(onClick = { showAboutDialog = false }) {
-                        Text("موافق")
-                    }
-                }
+# Add SettingsSwitchItem Composable
+if "fun SettingsSwitchItem" not in settings_content:
+    settings_content += """
+@Composable
+fun SettingsSwitchItem(
+    icon: ImageVector,
+    title: String,
+    subtitle: String,
+    isChecked: Boolean,
+    onCheckedChange: (Boolean) -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth().clickable { onCheckedChange(!isChecked) },
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+            Spacer(modifier = Modifier.width(16.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            Switch(
+                checked = isChecked,
+                onCheckedChange = onCheckedChange,
+                colors = SwitchDefaults.colors(checkedThumbColor = MaterialTheme.colorScheme.primary, checkedTrackColor = MaterialTheme.colorScheme.primaryContainer)
             )
         }
     }
 }
 """
 
-content = re.sub(r'    }\n}\s*@Composable', dialog_code + '\n@Composable', content)
+# Insert the toggle item in SettingsScreen
+if "val isDarkModeFlow" not in settings_content:
+    settings_content = settings_content.replace(
+        "val context = LocalContext.current",
+        "val context = LocalContext.current\n    val isDarkModeFlow by ThemeManager.isDarkMode.collectAsState()\n    val isSystemDark = isSystemInDarkTheme()\n    val isDark = isDarkModeFlow ?: isSystemDark"
+    )
 
-with open("app/src/main/java/com/example/alfalah/ui/screens/profile/SettingsScreen.kt", "w") as f:
-    f.write(content)
+    toggle_code = """
+                SettingsSwitchItem(
+                    icon = Icons.Filled.DarkMode,
+                    title = "الوضع الليلي",
+                    subtitle = "تفعيل المظهر الداكن لإراحة العين",
+                    isChecked = isDark,
+                    onCheckedChange = { ThemeManager.toggleTheme(context, it) }
+                )
+                """
+    
+    settings_content = settings_content.replace(
+        "verticalArrangement = Arrangement.spacedBy(16.dp)\n            ) {",
+        "verticalArrangement = Arrangement.spacedBy(16.dp)\n            ) {\n" + toggle_code
+    )
+
+with open(settings_file, "w") as f:
+    f.write(settings_content)

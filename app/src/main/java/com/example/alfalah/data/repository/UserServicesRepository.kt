@@ -30,7 +30,7 @@ class UserServicesRepository {
     }
 
     suspend fun getMyOrders(): Result<List<Order>> {
-        val uid = getUserId() ?: return Result.failure(Exception("Not logged in"))
+        val uid = getUserId() ?: run { android.util.Log.e("UserServicesRepository", "addToCart failed: Not logged in"); return Result.failure(Exception("Not logged in")) }
         return try {
             val snapshot = firestore.collection("orders")
                 .whereEqualTo("userId", uid)
@@ -43,7 +43,7 @@ class UserServicesRepository {
     }
 
     suspend fun getCartItems(): Result<List<CartItem>> {
-        val uid = getUserId() ?: return Result.failure(Exception("Not logged in"))
+        val uid = getUserId() ?: run { android.util.Log.e("UserServicesRepository", "addToCart failed: Not logged in"); return Result.failure(Exception("Not logged in")) }
         return try {
             val snapshot = firestore.collection("users").document(uid)
                 .collection("cart")
@@ -55,19 +55,42 @@ class UserServicesRepository {
     }
 
     suspend fun addToCart(item: CartItem): Result<Unit> {
-        val uid = getUserId() ?: return Result.failure(Exception("Not logged in"))
+        val uid = getUserId() ?: run { 
+            android.util.Log.e("UserServicesRepository", "addToCart failed: Not logged in")
+            return Result.failure(Exception("عليك تسجيل الدخول أولاً")) 
+        }
+        if (item.productId.isEmpty()) {
+            return Result.failure(Exception("معرف المنتج غير صالح (فارغ)"))
+        }
         return try {
             firestore.collection("users").document(uid)
                 .collection("cart").document(item.productId)
                 .set(item).await()
             Result.success(Unit)
         } catch (e: Exception) {
+            android.util.Log.e("UserServicesRepository", "addToCart failed: ${e.message}", e)
+            Result.failure(e)
+        }
+    }
+
+    suspend fun updateCartQuantity(productId: String, quantity: Int): Result<Unit> {
+        val uid = getUserId() ?: run { android.util.Log.e("UserServicesRepository", "addToCart failed: Not logged in"); return Result.failure(Exception("Not logged in")) }
+        return try {
+            val docRef = firestore.collection("users").document(uid).collection("cart").document(productId)
+            if (quantity <= 0) {
+                docRef.delete().await()
+            } else {
+                docRef.update("quantity", quantity).await()
+            }
+            Result.success(Unit)
+        } catch (e: Exception) {
+            android.util.Log.e("UserServicesRepository", "addToCart failed: ${e.message}", e)
             Result.failure(e)
         }
     }
 
     suspend fun clearCart(): Result<Unit> {
-        val uid = getUserId() ?: return Result.failure(Exception("Not logged in"))
+        val uid = getUserId() ?: run { android.util.Log.e("UserServicesRepository", "addToCart failed: Not logged in"); return Result.failure(Exception("Not logged in")) }
         return try {
             val snapshot = firestore.collection("users").document(uid)
                 .collection("cart").get().await()
@@ -76,12 +99,13 @@ class UserServicesRepository {
             }
             Result.success(Unit)
         } catch (e: Exception) {
+            android.util.Log.e("UserServicesRepository", "addToCart failed: ${e.message}", e)
             Result.failure(e)
         }
     }
 
     suspend fun createOrder(order: Order): Result<Boolean> {
-        val uid = getUserId() ?: return Result.failure(Exception("Not logged in"))
+        val uid = getUserId() ?: run { android.util.Log.e("UserServicesRepository", "addToCart failed: Not logged in"); return Result.failure(Exception("Not logged in")) }
         return try {
             firestore.collection("orders").add(order.copy(userId = uid)).await()
             Result.success(true)
@@ -91,7 +115,7 @@ class UserServicesRepository {
     }
 
     suspend fun uploadPaymentReceipt(uri: Uri): Result<String> {
-        val uid = getUserId() ?: return Result.failure(Exception("Not logged in"))
+        val uid = getUserId() ?: run { android.util.Log.e("UserServicesRepository", "addToCart failed: Not logged in"); return Result.failure(Exception("Not logged in")) }
         return try {
             val ref = storage.reference.child("receipts/$uid/${UUID.randomUUID()}")
             ref.putFile(uri).await()
@@ -115,7 +139,7 @@ class UserServicesRepository {
     }
 
     suspend fun addFavorite(itemId: String, itemType: String): Result<Unit> {
-        val uid = getUserId() ?: return Result.failure(Exception("Not logged in"))
+        val uid = getUserId() ?: run { android.util.Log.e("UserServicesRepository", "addToCart failed: Not logged in"); return Result.failure(Exception("Not logged in")) }
         return try {
             val fav = Favorite(id = itemId, itemId = itemId, itemType = itemType)
             firestore.collection("users").document(uid)
@@ -123,24 +147,26 @@ class UserServicesRepository {
                 .set(fav).await()
             Result.success(Unit)
         } catch (e: Exception) {
+            android.util.Log.e("UserServicesRepository", "addToCart failed: ${e.message}", e)
             Result.failure(e)
         }
     }
 
     suspend fun removeFavorite(itemId: String): Result<Unit> {
-        val uid = getUserId() ?: return Result.failure(Exception("Not logged in"))
+        val uid = getUserId() ?: run { android.util.Log.e("UserServicesRepository", "addToCart failed: Not logged in"); return Result.failure(Exception("Not logged in")) }
         return try {
             firestore.collection("users").document(uid)
                 .collection("favorites").document(itemId)
                 .delete().await()
             Result.success(Unit)
         } catch (e: Exception) {
+            android.util.Log.e("UserServicesRepository", "addToCart failed: ${e.message}", e)
             Result.failure(e)
         }
     }
 
     suspend fun uploadImage(uri: Uri): Result<String> {
-        val uid = getUserId() ?: return Result.failure(Exception("Not logged in"))
+        val uid = getUserId() ?: run { android.util.Log.e("UserServicesRepository", "addToCart failed: Not logged in"); return Result.failure(Exception("Not logged in")) }
         return try {
             val ref = storage.reference.child("images/${UUID.randomUUID()}")
             ref.putFile(uri).await()
@@ -168,6 +194,7 @@ class UserServicesRepository {
                 .update("paymentStatus", paymentStatus, "orderStatus", orderStatus, "updatedAt", System.currentTimeMillis()).await()
             Result.success(Unit)
         } catch (e: Exception) {
+            android.util.Log.e("UserServicesRepository", "addToCart failed: ${e.message}", e)
             Result.failure(e)
         }
     }
@@ -195,41 +222,44 @@ class UserServicesRepository {
     }
 
     suspend fun addMyCrop(cropId: String): Result<Unit> {
-        val uid = getUserId() ?: return Result.failure(Exception("Not logged in"))
+        val uid = getUserId() ?: run { android.util.Log.e("UserServicesRepository", "addToCart failed: Not logged in"); return Result.failure(Exception("Not logged in")) }
         return try {
             val mc = MyCrop(id = cropId, cropId = cropId)
             firestore.collection("users").document(uid)
                 .collection("my_crops").document(cropId).set(mc).await()
             Result.success(Unit)
         } catch (e: Exception) {
+            android.util.Log.e("UserServicesRepository", "addToCart failed: ${e.message}", e)
             Result.failure(e)
         }
     }
 
     suspend fun removeMyCrop(cropId: String): Result<Unit> {
-        val uid = getUserId() ?: return Result.failure(Exception("Not logged in"))
+        val uid = getUserId() ?: run { android.util.Log.e("UserServicesRepository", "addToCart failed: Not logged in"); return Result.failure(Exception("Not logged in")) }
         return try {
             firestore.collection("users").document(uid)
                 .collection("my_crops").document(cropId).delete().await()
             Result.success(Unit)
         } catch (e: Exception) {
+            android.util.Log.e("UserServicesRepository", "addToCart failed: ${e.message}", e)
             Result.failure(e)
         }
     }
 
     suspend fun deleteConversation(id: String): Result<Unit> {
-        val uid = getUserId() ?: return Result.failure(Exception("Not logged in"))
+        val uid = getUserId() ?: run { android.util.Log.e("UserServicesRepository", "addToCart failed: Not logged in"); return Result.failure(Exception("Not logged in")) }
         return try {
             firestore.collection("users").document(uid)
                 .collection("conversations").document(id).delete().await()
             Result.success(Unit)
         } catch (e: Exception) {
+            android.util.Log.e("UserServicesRepository", "addToCart failed: ${e.message}", e)
             Result.failure(e)
         }
     }
 
     suspend fun saveConversation(conv: Conversation): Result<Unit> {
-        val uid = getUserId() ?: return Result.failure(Exception("Not logged in"))
+        val uid = getUserId() ?: run { android.util.Log.e("UserServicesRepository", "addToCart failed: Not logged in"); return Result.failure(Exception("Not logged in")) }
         return try {
             val ref = if (conv.id.isEmpty()) {
                 firestore.collection("users").document(uid).collection("conversations").document()
@@ -239,7 +269,18 @@ class UserServicesRepository {
             ref.set(conv.copy(id = ref.id)).await()
             Result.success(Unit)
         } catch (e: Exception) {
+            android.util.Log.e("UserServicesRepository", "addToCart failed: ${e.message}", e)
             Result.failure(e)
+        }
+    }
+
+    suspend fun getMyCrops(): List<MyCrop> {
+        val uid = getUserId() ?: return emptyList()
+        return try {
+            val snapshot = firestore.collection("users").document(uid).collection("my_crops").get().await()
+            snapshot.toObjects(MyCrop::class.java)
+        } catch (e: Exception) {
+            emptyList()
         }
     }
 }

@@ -1,50 +1,30 @@
-import re
-
-with open("app/src/main/java/com/example/alfalah/ui/screens/profile/MyCropsScreen.kt", "r", encoding="utf-8") as f:
+with open("app/src/main/java/com/example/alfalah/data/repository/UserServicesRepository.kt", "r") as f:
     content = f.read()
 
-sig_old = """fun MyCropsScreen(
-    onBack: () -> Unit,"""
-sig_new = """fun MyCropsScreen(
-    onBack: () -> Unit,
-    onNavigateToCrop: (String) -> Unit = {},"""
-content = content.replace(sig_old, sig_new)
-
-effect_old = """    LaunchedEffect(Unit) {
-        val cropsData = userServicesRepository.getMyCrops()
-        myCrops = cropsData
-        
-        // Fetch crop details
-        val fullCrops = mutableListOf<Crop>()
-        for (myCrop in cropsData) {
-            val res = firestoreRepository.getCropById(myCrop.cropId)
-            res.getOrNull()?.let { fullCrops.add(it) }
+isMyCrop_str = """    suspend fun isMyCrop(cropId: String): Boolean {
+        val uid = getUserId() ?: return false
+        return try {
+            val doc = firestore.collection("users").document(uid).collection("my_crops").document(cropId).get().await()
+            doc.exists()
+        } catch (e: Exception) {
+            false
         }
-        loadedCrops = fullCrops
-        isLoading = false
     }"""
     
-effect_new = """    LaunchedEffect(Unit) {
-        val res = userServicesRepository.getMyCrops()
-        if (res.isSuccess) {
-            val cropsData = res.getOrDefault(emptyList())
-            myCrops = cropsData
-            
-            // Fetch crop details
-            val fullCrops = mutableListOf<Crop>()
-            for (myCrop in cropsData) {
-                val cres = firestoreRepository.getCropById(myCrop.itemId) // MyCrop uses itemId actually, let's check
-                cres.getOrNull()?.let { fullCrops.add(it) }
-            }
-            loadedCrops = fullCrops
+new_str = isMyCrop_str + """
+
+    suspend fun getMyCrops(): Result<List<String>> {
+        val uid = getUserId() ?: return Result.failure(Exception("Not logged in"))
+        return try {
+            val snapshot = firestore.collection("users").document(uid).collection("my_crops").get().await()
+            val crops = snapshot.documents.map { it.id }
+            Result.success(crops)
+        } catch (e: Exception) {
+            Result.failure(e)
         }
-        isLoading = false
     }"""
-content = content.replace(effect_old, effect_new)
 
-items_old = "CropCard(crop = loadedCrops[index], userServicesRepository = userServicesRepository)"
-items_new = "CropCard(crop = loadedCrops[index], userServicesRepository = userServicesRepository, onClick = { onNavigateToCrop(loadedCrops[index].id) })"
-content = content.replace(items_old, items_new)
-
-with open("app/src/main/java/com/example/alfalah/ui/screens/profile/MyCropsScreen.kt", "w", encoding="utf-8") as f:
-    f.write(content)
+if "getMyCrops" not in content:
+    content = content.replace(isMyCrop_str, new_str)
+    with open("app/src/main/java/com/example/alfalah/data/repository/UserServicesRepository.kt", "w") as f:
+        f.write(content)

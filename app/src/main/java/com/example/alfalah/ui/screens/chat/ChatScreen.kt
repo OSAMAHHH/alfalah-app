@@ -115,7 +115,7 @@ fun ChatScreen(
         },
         containerColor = MaterialTheme.colorScheme.background
     ) { padding ->
-        Column(modifier = modifier.fillMaxSize().padding(padding)) {
+        Column(modifier = modifier.fillMaxSize().padding(padding).imePadding()) {
             if (messages.isEmpty()) {
                 Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -146,7 +146,7 @@ fun ChatScreen(
             }
 
             Surface(color = MaterialTheme.colorScheme.surface, shadowElevation = 16.dp) {
-                Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp).navigationBarsPadding(), verticalAlignment = Alignment.CenterVertically) {
+                Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
                     OutlinedTextField(
                         value = inputText, onValueChange = { inputText = it },
                         modifier = Modifier.weight(1f), placeholder = { Text("اكتب سؤالك الزراعي...") },
@@ -206,7 +206,7 @@ fun ChatMessageBubble(message: ChatMessageUi, onNavigateToProduct: (String) -> U
                             Row(modifier = Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
                                 Column {
                                     Text(product.name, style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onSurface)
-                                    Text("${product.price} ر.ي", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
+                                    Text(com.example.alfalah.utils.CurrencyUtils.formatPrice(product.price, product.currency), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
                                 }
                             }
                         }

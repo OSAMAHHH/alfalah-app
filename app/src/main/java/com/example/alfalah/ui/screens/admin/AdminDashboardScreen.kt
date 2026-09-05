@@ -263,7 +263,7 @@ fun ProductsList(products: List<Product>, onEdit: (Product) -> Unit, onDelete: (
                         Text(product.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            "السعر: ${product.price} ر.س", 
+                            "السعر: " + com.example.alfalah.utils.CurrencyUtils.formatPrice(product.price, product.currency), 
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.primary
                         )

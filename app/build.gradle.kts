@@ -15,8 +15,8 @@ android {
         applicationId = "com.aistudio.alfalah.kxmpzq"
         minSdk = 26
         targetSdk = 36
-        versionCode = 3
-        versionName = "1.2-B3-Test"
+        versionCode = 1
+        versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -54,6 +54,7 @@ android {
 }
 
 dependencies {
+    implementation("com.google.android.gms:play-services-location:21.3.0")
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
